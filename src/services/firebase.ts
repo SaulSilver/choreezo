@@ -11,6 +11,13 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID",
 };
 
+// Warn developers when placeholder Firebase config values are detected
+if (__DEV__ && firebaseConfig.apiKey.startsWith('YOUR_')) {
+  console.warn(
+    '[ChoreShare] Firebase is not configured. Replace placeholder values in src/services/firebase.ts with your actual Firebase project credentials.'
+  );
+}
+
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
