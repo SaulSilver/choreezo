@@ -35,8 +35,8 @@ export function generateWeekAssignments(
 
       const userIndex = (dayIndex + choreIndex + weekOffset) % users.length;
       assignments.push({
-        id: '',
-        apartmentId: '',
+        id: '', // populated by Firestore after write
+        apartmentId: '', // populated by caller before write
         userId: users[userIndex].id,
         choreId: chore.id,
         date: dateStr,

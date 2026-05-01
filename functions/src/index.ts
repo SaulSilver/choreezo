@@ -38,13 +38,15 @@ interface Chore {
   icon?: string;
 }
 
+/** Returns year*100 + ISO week number, matching the client-side getWeekNumber() in dateUtils.ts */
 function getWeekNumber(date: Date): number {
-  const year = date.getFullYear();
-  const startOfYear = new Date(year, 0, 1);
-  const weekNo = Math.ceil(
-    ((date.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
-  );
-  return year * 100 + weekNo;
+  // ISO week: week containing first Thursday of the year is week 1
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return d.getUTCFullYear() * 100 + weekNo;
 }
 
 function generateAssignments(

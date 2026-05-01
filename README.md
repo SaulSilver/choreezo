@@ -1,4 +1,4 @@
-# # ChoreShare 🏠
+# ChoreShare 🏠
 
 A production-ready iOS mobile app for fairly distributing household chores among roommates. Built with React Native (Expo) and TypeScript.
 
