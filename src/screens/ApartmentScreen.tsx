@@ -11,11 +11,10 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { createApartment, joinApartment, getApartmentMembers, createOrUpdateUser } from '../services/apartments';
+import { createApartment, joinApartment, getApartmentMembers } from '../services/apartments';
 import { initializeDefaultChores, getChores } from '../services/chores';
-import { useProfileStore } from '../store/profileStore';
+import { useAuthStore } from '../store/authStore';
 import { useApartmentStore } from '../store/apartmentStore';
-import { useSettingsStore } from '../store/settingsStore';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 type Tab = 'create' | 'join';
@@ -26,26 +25,24 @@ export default function ApartmentScreen() {
   const [inviteCode, setInviteCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { userId, name, setApartmentId } = useProfileStore();
+  const { user, updateUser } = useAuthStore();
   const { setApartment, setMembers, setChores } = useApartmentStore();
-  const { notifyDaily, notifyWeekly } = useSettingsStore();
 
   const handleCreate = async () => {
-    if (!userId || !name) return;
+    if (!user) return;
     if (!apartmentName.trim()) {
       Alert.alert('Error', 'Please enter an apartment name');
       return;
     }
     try {
       setIsLoading(true);
-      await createOrUpdateUser({ id: userId, name, apartmentId: null, notifyDaily, notifyWeekly });
-      const apartment = await createApartment(apartmentName.trim(), userId);
+      const apartment = await createApartment(apartmentName.trim(), user.id);
       const chores = await initializeDefaultChores(apartment.id);
       const members = await getApartmentMembers(apartment.id);
       setApartment(apartment);
       setChores(chores);
       setMembers(members);
-      await setApartmentId(apartment.id);
+      updateUser({ apartmentId: apartment.id });
     } catch (err: unknown) {
       const error = err as { message?: string };
       Alert.alert('Error', error.message ?? 'Failed to create apartment');
@@ -55,21 +52,20 @@ export default function ApartmentScreen() {
   };
 
   const handleJoin = async () => {
-    if (!userId || !name) return;
+    if (!user) return;
     if (inviteCode.trim().length !== 6) {
       Alert.alert('Error', 'Please enter a valid 6-character invite code');
       return;
     }
     try {
       setIsLoading(true);
-      await createOrUpdateUser({ id: userId, name, apartmentId: null, notifyDaily, notifyWeekly });
-      const apartment = await joinApartment(inviteCode.trim(), userId);
+      const apartment = await joinApartment(inviteCode.trim(), user.id);
       const chores = await getChores(apartment.id);
       const members = await getApartmentMembers(apartment.id);
       setApartment(apartment);
       setChores(chores);
       setMembers(members);
-      await setApartmentId(apartment.id);
+      updateUser({ apartmentId: apartment.id });
     } catch (err: unknown) {
       const error = err as { message?: string };
       Alert.alert('Error', error.message ?? 'Failed to join apartment');

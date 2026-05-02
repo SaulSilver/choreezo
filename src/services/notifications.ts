@@ -1,8 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { updateUserToken } from './auth';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -13,10 +12,6 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-
-async function updateUserToken(userId: string, token: string): Promise<void> {
-  await setDoc(doc(db, 'users', userId), { expoPushToken: token }, { merge: true });
-}
 
 export async function registerForPushNotifications(userId: string): Promise<string | null> {
   // Push notifications require a physical device

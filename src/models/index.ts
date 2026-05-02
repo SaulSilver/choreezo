@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   name: string;
+  appleId: string;
   apartmentId: string | null;
   expoPushToken?: string;
   notifyDaily: boolean;

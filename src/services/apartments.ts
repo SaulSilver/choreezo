@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   query,
   where,
   getDocs,
@@ -11,10 +12,6 @@ import {
 import { db } from './firebase';
 import { Apartment, User } from '../models';
 import { generateInviteCode } from '../utils/inviteCode';
-
-export async function createOrUpdateUser(user: Omit<User, 'expoPushToken'>): Promise<void> {
-  await setDoc(doc(db, 'users', user.id), user, { merge: true });
-}
 
 export async function createApartment(
   name: string,
@@ -31,7 +28,7 @@ export async function createApartment(
     createdBy,
   };
   await setDoc(ref, { ...apartment, createdAt: serverTimestamp() });
-  await setDoc(doc(db, 'users', createdBy), { apartmentId: ref.id }, { merge: true });
+  await updateDoc(doc(db, 'users', createdBy), { apartmentId: ref.id });
   return apartment;
 }
 
@@ -49,7 +46,7 @@ export async function joinApartment(
   const apartmentDoc = snap.docs[0];
   const apartment = { id: apartmentDoc.id, ...apartmentDoc.data() } as Apartment;
 
-  await setDoc(doc(db, 'users', userId), { apartmentId: apartment.id }, { merge: true });
+  await updateDoc(doc(db, 'users', userId), { apartmentId: apartment.id });
   return apartment;
 }
 
@@ -69,5 +66,5 @@ export async function getApartmentMembers(apartmentId: string): Promise<User[]> 
 }
 
 export async function leaveApartment(userId: string): Promise<void> {
-  await setDoc(doc(db, 'users', userId), { apartmentId: null }, { merge: true });
+  await updateDoc(doc(db, 'users', userId), { apartmentId: null });
 }
