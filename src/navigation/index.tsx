@@ -1,43 +1,49 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../services/firebase';
+import { getCurrentUser } from '../services/auth';
 import { getApartment, getApartmentMembers } from '../services/apartments';
 import { getChores } from '../services/chores';
-import { useProfileStore } from '../store/profileStore';
+import { useAuthStore } from '../store/authStore';
 import { useApartmentStore } from '../store/apartmentStore';
-import ProfileSetupScreen from '../screens/ProfileSetupScreen';
+import AuthScreen from '../screens/AuthScreen';
 import ApartmentScreen from '../screens/ApartmentScreen';
 import AppNavigator from './AppNavigator';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function RootNavigator() {
-  const { userId, name, apartmentId, isLoading, loadProfile } = useProfileStore();
+  const { user, isLoading, setUser, setLoading } = useAuthStore();
   const { apartment, setApartment, setMembers, setChores } = useApartmentStore();
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
-
-  useEffect(() => {
-    if (!apartmentId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const apt = await getApartment(apartmentId);
-        if (cancelled || !apt) return;
-        setApartment(apt);
-        const [fetchedMembers, fetchedChores] = await Promise.all([
-          getApartmentMembers(apt.id),
-          getChores(apt.id),
-        ]);
-        if (cancelled) return;
-        setMembers(fetchedMembers);
-        setChores(fetchedChores);
-      } catch (error) {
-        console.error('Failed to load apartment data', error);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const appUser = await getCurrentUser(firebaseUser.uid);
+        if (appUser) {
+          setUser(appUser);
+          if (appUser.apartmentId) {
+            const apt = await getApartment(appUser.apartmentId);
+            if (apt) {
+              setApartment(apt);
+              const [fetchedMembers, fetchedChores] = await Promise.all([
+                getApartmentMembers(apt.id),
+                getChores(apt.id),
+              ]);
+              setMembers(fetchedMembers);
+              setChores(fetchedChores);
+            }
+          }
+        } else {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
-    })();
-    return () => { cancelled = true; };
-  }, [apartmentId, setApartment, setMembers, setChores]);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [setUser, setLoading, setApartment, setMembers, setChores]);
 
   if (isLoading) {
     return <LoadingSpinner fullScreen message="Loading ChoreShare..." />;
@@ -45,9 +51,9 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {!name || !userId ? (
-        <ProfileSetupScreen />
-      ) : !apartmentId || !apartment ? (
+      {!user ? (
+        <AuthScreen />
+      ) : !user.apartmentId || !apartment ? (
         <ApartmentScreen />
       ) : (
         <AppNavigator />

@@ -1,10 +1,10 @@
 # ChoreShare 🏠
 
-A mobile app for fairly distributing household chores among roommates. Built with React Native (Expo) and TypeScript.
+A production-ready iOS mobile app for fairly distributing household chores among roommates. Built with React Native (Expo) and TypeScript.
 
 ## Features
 
-- **Profile Setup** – Enter your name once and a local UUID is generated for you — no account required
+- **Apple Sign In** – Secure authentication via Sign in with Apple
 - **Apartment Management** – Create or join apartments with a 6-character invite code
 - **Weekly Schedule** – Auto-generated chore assignments with a 7-day day-picker view
 - **My Chores** – Personal view of all assigned chores for the week
@@ -20,11 +20,11 @@ A mobile app for fairly distributing household chores among roommates. Built wit
 | Language | TypeScript |
 | State Management | Zustand |
 | Navigation | React Navigation (Stack + Bottom Tabs) |
-| Backend | Firebase (Firestore) |
-| Notifications | Expo Push Notifications |
+| Backend | Firebase (Auth, Firestore) |
+| Notifications | Expo Push Notifications + Firebase Cloud Messaging |
 | Cloud Functions | Firebase Functions v4 (Node 18) |
 | Date Utilities | date-fns |
-| Storage | AsyncStorage (profile + settings), expo-secure-store |
+| Storage | AsyncStorage (settings), expo-secure-store |
 
 ## Project Structure
 
@@ -35,13 +35,14 @@ choreezo/
 ├── src/
 │   ├── models/index.ts             # TypeScript interfaces
 │   ├── services/
-│   │   ├── firebase.ts             # Firebase initialization (Firestore only)
-│   │   ├── apartments.ts           # Apartment CRUD + user doc writes
+│   │   ├── firebase.ts             # Firebase initialization
+│   │   ├── auth.ts                 # Apple Sign In + user management
+│   │   ├── apartments.ts           # Apartment CRUD
 │   │   ├── chores.ts               # Chore management
 │   │   ├── assignments.ts          # Assignment generation & updates
 │   │   └── notifications.ts        # Push notification registration
 │   ├── store/
-│   │   ├── profileStore.ts         # Local profile: userId + name (AsyncStorage)
+│   │   ├── authStore.ts            # Auth state (Zustand)
 │   │   ├── apartmentStore.ts       # Apartment/members/chores state
 │   │   ├── assignmentStore.ts      # Assignments state
 │   │   └── settingsStore.ts        # Notification settings (persisted)
@@ -55,14 +56,14 @@ choreezo/
 │   │   ├── LoadingSpinner.tsx      # Loading indicator
 │   │   └── EmptyState.tsx          # Empty list placeholder
 │   ├── screens/
-│   │   ├── ProfileSetupScreen.tsx  # Name entry (first launch)
+│   │   ├── AuthScreen.tsx          # Sign in with Apple
 │   │   ├── ApartmentScreen.tsx     # Create / join apartment
 │   │   ├── WeeklyScheduleScreen.tsx # 7-day chore schedule
 │   │   ├── MyChoresScreen.tsx      # Personal chore list
 │   │   ├── EditAssignmentScreen.tsx # Reassign / swap chores
 │   │   └── SettingsScreen.tsx      # Profile, invite code, notifications
 │   └── navigation/
-│       ├── index.tsx               # Root navigator (profile → apartment → app)
+│       ├── index.tsx               # Root navigator (auth gating)
 │       └── AppNavigator.tsx        # Tab + stack navigators
 └── functions/
     ├── package.json
@@ -76,14 +77,16 @@ choreezo/
 
 - Node.js 18+
 - Expo CLI (`npm install -g expo-cli`)
-- A Firebase project with Firestore enabled
+- A Firebase project with Authentication and Firestore enabled
+- An Apple Developer account (for Sign in with Apple)
 - EAS CLI (`npm install -g eas-cli`) for building
 
 ### 1. Firebase Setup
 
 1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable **Firestore Database**
-3. Copy your Firebase config into `src/services/firebase.ts`
+2. Enable **Authentication → Sign-in method → Apple**
+3. Enable **Firestore Database**
+4. Copy your Firebase config into `src/services/firebase.ts`
 
 ### 2. Install Dependencies
 
@@ -108,6 +111,8 @@ Update `app.json` with your EAS project ID:
 ```bash
 npx expo start
 ```
+
+> Note: Apple Sign In only works on physical iOS devices or Simulator with a valid Apple Developer account.
 
 ## Scheduling Algorithm
 
@@ -151,7 +156,7 @@ No `.env` file is required. Firebase config is stored directly in `src/services/
 
 ```
 users/{userId}
-  - id, name, apartmentId, expoPushToken, notifyDaily, notifyWeekly
+  - id, name, appleId, apartmentId, expoPushToken, notifyDaily, notifyWeekly
 
 apartments/{apartmentId}
   - id, name, inviteCode, timezone, createdBy

@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { useProfileStore } from '../store/profileStore';
+import { useAuthStore } from '../store/authStore';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useAssignmentStore } from '../store/assignmentStore';
 import { formatDisplayDate, parseDate } from '../utils/dateUtils';
@@ -20,16 +20,16 @@ type NavProp = StackNavigationProp<AppStackParamList, 'EditAssignment'>;
 
 export default function MyChoresScreen() {
   const navigation = useNavigation<NavProp>();
-  const { userId } = useProfileStore();
+  const { user } = useAuthStore();
   const { members, chores } = useApartmentStore();
   const { assignments } = useAssignmentStore();
 
   const myAssignments = useMemo(
     () =>
       assignments
-        .filter((a) => a.userId === userId)
+        .filter((a) => a.userId === user?.id)
         .sort((a, b) => a.date.localeCompare(b.date)),
-    [assignments, userId]
+    [assignments, user?.id]
   );
 
   const grouped = useMemo(() => {

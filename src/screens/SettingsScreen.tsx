@@ -10,21 +10,36 @@ import {
   ScrollView,
   Share,
 } from 'react-native';
-import { useProfileStore } from '../store/profileStore';
+import { useAuthStore } from '../store/authStore';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { signOut } from '../services/auth';
 import { leaveApartment } from '../services/apartments';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UserAvatar from '../components/UserAvatar';
 
 export default function SettingsScreen() {
-  const { userId, name, setApartmentId } = useProfileStore();
+  const { user, setUser, updateUser } = useAuthStore();
   const { apartment, setApartment, members } = useApartmentStore();
   const { notifyDaily, notifyWeekly, setNotifyDaily, setNotifyWeekly } = useSettingsStore();
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleSignOut = async () => {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          setUser(null);
+        },
+      },
+    ]);
+  };
+
   const handleLeaveApartment = async () => {
-    if (!userId) return;
+    if (!user) return;
     Alert.alert(
       'Leave Apartment',
       `Are you sure you want to leave ${apartment?.name ?? 'this apartment'}? You can rejoin later with the invite code.`,
@@ -36,9 +51,9 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               setIsLoading(true);
-              await leaveApartment(userId);
+              await leaveApartment(user.id);
+              updateUser({ apartmentId: null });
               setApartment(null);
-              await setApartmentId(null);
             } catch (err: unknown) {
               const error = err as { message?: string };
               Alert.alert('Error', error.message ?? 'Failed to leave apartment');
@@ -64,10 +79,10 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {name && (
+        {user && (
           <View style={styles.profileCard}>
-            <UserAvatar name={name} size={64} />
-            <Text style={styles.profileName}>{name}</Text>
+            <UserAvatar name={user.name} size={64} />
+            <Text style={styles.profileName}>{user.name}</Text>
           </View>
         )}
 
@@ -121,13 +136,16 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {apartment && (
-          <View style={styles.section}>
+        <View style={styles.section}>
+          {apartment && (
             <TouchableOpacity style={styles.dangerButton} onPress={handleLeaveApartment}>
               <Text style={styles.dangerButtonText}>Leave Apartment</Text>
             </TouchableOpacity>
-          </View>
-        )}
+          )}
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -150,4 +168,6 @@ const styles = StyleSheet.create({
   shareIcon: { fontSize: 16 },
   dangerButton: { backgroundColor: '#FEF2F2', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#FECACA' },
   dangerButtonText: { color: '#EF4444', fontSize: 16, fontWeight: '600' },
+  signOutButton: { backgroundColor: '#F3F4F6', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  signOutButtonText: { color: '#374151', fontSize: 16, fontWeight: '600' },
 });
