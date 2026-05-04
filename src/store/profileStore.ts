@@ -1,12 +1,14 @@
-import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from "zustand";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function uuidv4(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
@@ -21,7 +23,7 @@ interface ProfileState {
   clearProfile: () => Promise<void>;
 }
 
-const STORAGE_KEY = 'choreshare_profile';
+const STORAGE_KEY = "choreshare_profile";
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
   userId: null,
@@ -39,7 +41,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   setApartmentId: async (apartmentId) => {
     const { userId, name } = get();
     if (userId && name) {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ userId, name, apartmentId }));
+      await AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ userId, name, apartmentId }),
+      );
     }
     set({ apartmentId });
   },
@@ -49,7 +54,12 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (raw) {
         const { userId, name, apartmentId } = JSON.parse(raw);
-        set({ userId, name, apartmentId: apartmentId ?? null, isLoading: false });
+        set({
+          userId,
+          name,
+          apartmentId: apartmentId ?? null,
+          isLoading: false,
+        });
       } else {
         set({ isLoading: false });
       }
@@ -65,5 +75,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 }));
 
 export function generateUserId(): string {
-  return uuidv4();
+  return Math.random().toString(36).substring(2, 15);
+  // return uuidv4();
 }
