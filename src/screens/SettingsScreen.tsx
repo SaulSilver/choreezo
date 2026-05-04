@@ -13,18 +13,27 @@ import {
 import { useProfileStore } from '../store/profileStore';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { leaveApartment, deleteAccount } from '../services/apartments';
+import { leaveApartment, deleteAccount, deleteApartment } from '../services/apartments';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UserAvatar from '../components/UserAvatar';
 
 export default function SettingsScreen() {
   const { userId, name, authProvider, setApartmentId, clearProfile } = useProfileStore();
-  const { apartment, setApartment, members } = useApartmentStore();
+  const { apartment, setApartment, setMembers, setChores, members } = useApartmentStore();
   const { notifyDaily, notifyWeekly, setNotifyDaily, setNotifyWeekly } = useSettingsStore();
   const [isLoading, setIsLoading] = useState(false);
 
+  const isAdmin = !!(apartment && userId && apartment.createdBy === userId);
+
   const handleLeaveApartment = async () => {
     if (!userId) return;
+    if (isAdmin) {
+      Alert.alert(
+        'Cannot Leave Apartment',
+        'You are the apartment admin. Please delete the apartment before leaving.'
+      );
+      return;
+    }
     Alert.alert(
       'Leave Apartment',
       `Are you sure you want to leave ${apartment?.name ?? 'this apartment'}? You can rejoin later with the invite code.`,
@@ -51,8 +60,45 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleDeleteApartment = () => {
+    if (!userId || !apartment) return;
+    Alert.alert(
+      'Delete Apartment',
+      `Are you sure you want to delete "${apartment.name}"? All members will be removed and this action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await deleteApartment(apartment.id, userId);
+              setApartment(null);
+              setMembers([]);
+              setChores([]);
+              await setApartmentId(null);
+            } catch (err: unknown) {
+              const error = err as { message?: string };
+              Alert.alert('Error', error.message ?? 'Failed to delete apartment');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleSignOut = () => {
     if (!userId) return;
+    if (isAdmin) {
+      Alert.alert(
+        'Cannot Sign Out',
+        'You are the apartment admin. Please delete the apartment before signing out.'
+      );
+      return;
+    }
     const message =
       authProvider === 'apple'
         ? 'Are you sure you want to sign out? You can sign back in with Apple at any time.'
@@ -84,7 +130,7 @@ export default function SettingsScreen() {
 
   const handleDeleteAccount = () => {
     if (!userId) return;
-    if (apartment && apartment.createdBy === userId) {
+    if (isAdmin) {
       Alert.alert(
         'Cannot Delete Account',
         'You are the apartment admin. Please transfer ownership or delete the apartment before deleting your account.'
@@ -189,9 +235,14 @@ export default function SettingsScreen() {
         {userId && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
-            {apartment && (
+            {apartment && !isAdmin && (
               <TouchableOpacity style={styles.dangerButton} onPress={handleLeaveApartment}>
                 <Text style={styles.dangerButtonText}>Leave Apartment</Text>
+              </TouchableOpacity>
+            )}
+            {apartment && isAdmin && (
+              <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteApartment}>
+                <Text style={styles.dangerButtonText}>Delete Apartment</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.dangerButton} onPress={handleSignOut}>

@@ -95,6 +95,26 @@ export async function leaveApartment(userId: string): Promise<void> {
   await setDoc(doc(db, 'users', userId), { apartmentId: null }, { merge: true });
 }
 
+export async function deleteApartment(apartmentId: string, userId: string): Promise<void> {
+  if (!apartmentId) throw new Error('Apartment ID is required');
+  if (!userId) throw new Error('User ID is required');
+
+  const apartment = await getApartment(apartmentId);
+  if (!apartment) throw new Error('Apartment not found');
+  if (apartment.createdBy !== userId) throw new Error('Only the apartment admin can delete the apartment');
+
+  // Clear apartmentId for all members
+  const members = await getApartmentMembers(apartmentId);
+  await Promise.all(
+    members.map((member) =>
+      setDoc(doc(db, 'users', member.id), { apartmentId: null }, { merge: true })
+    )
+  );
+
+  // Delete the apartment document
+  await deleteDoc(doc(db, 'apartments', apartmentId));
+}
+
 export async function deleteAccount(userId: string): Promise<void> {
   if (!userId) throw new Error('User ID is required');
   await deleteDoc(doc(db, 'users', userId));
