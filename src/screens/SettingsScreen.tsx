@@ -18,7 +18,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import UserAvatar from '../components/UserAvatar';
 
 export default function SettingsScreen() {
-  const { userId, name, setApartmentId } = useProfileStore();
+  const { userId, name, authProvider, setApartmentId, clearProfile } = useProfileStore();
   const { apartment, setApartment, members } = useApartmentStore();
   const { notifyDaily, notifyWeekly, setNotifyDaily, setNotifyWeekly } = useSettingsStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -49,6 +49,37 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleSignOut = () => {
+    if (!userId) return;
+    const message =
+      authProvider === 'apple'
+        ? 'Are you sure you want to sign out? You can sign back in with Apple at any time.'
+        : 'Are you sure you want to sign out? Your local profile will be cleared from this device.';
+    Alert.alert('Sign Out', message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setIsLoading(true);
+            if (apartment) {
+              await leaveApartment(userId);
+              setApartment(null);
+              await setApartmentId(null);
+            }
+            await clearProfile();
+          } catch (err: unknown) {
+            const error = err as { message?: string };
+            Alert.alert('Error', error.message ?? 'Failed to sign out');
+          } finally {
+            setIsLoading(false);
+          }
+        },
+      },
+    ]);
   };
 
   const handleShareInviteCode = async () => {
@@ -121,10 +152,16 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {apartment && (
+        {userId && (
           <View style={styles.section}>
-            <TouchableOpacity style={styles.dangerButton} onPress={handleLeaveApartment}>
-              <Text style={styles.dangerButtonText}>Leave Apartment</Text>
+            <Text style={styles.sectionTitle}>Account</Text>
+            {apartment && (
+              <TouchableOpacity style={styles.dangerButton} onPress={handleLeaveApartment}>
+                <Text style={styles.dangerButtonText}>Leave Apartment</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.dangerButton} onPress={handleSignOut}>
+              <Text style={styles.dangerButtonText}>Sign Out</Text>
             </TouchableOpacity>
           </View>
         )}
