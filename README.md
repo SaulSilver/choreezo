@@ -170,6 +170,18 @@ Android / web Sign in with Apple, cross-provider account linking, and the accoun
 
 No `.env` file is required. Firebase config is stored directly in `src/services/firebase.ts`. For production, consider using [expo-constants](https://docs.expo.dev/versions/latest/sdk/constants/) with EAS secrets.
 
+### Local development flags
+
+| Variable | Effect |
+| --- | --- |
+| `EXPO_PUBLIC_MOCK_APPLE=1` | **Dev only.** Bypasses the native Sign in with Apple sheet and returns a deterministic credential (`dev-apple-user` / Dev User / `dev@example.com`). Avoids re-authenticating with iCloud on every simulator boot and after Sign Out. The flag is also gated by `__DEV__`, so it is a no-op in production builds. |
+
+Start Expo with the flag on the command line, e.g.:
+
+```sh
+EXPO_PUBLIC_MOCK_APPLE=1 npx expo start
+```
+
 ## Firestore Data Model
 
 ```

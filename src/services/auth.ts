@@ -8,6 +8,17 @@ import { upsertSignInUser, getUser } from './apartments';
 // and recognize returning users (Apple only returns name/email on first auth).
 const APPLE_USER_KEY = 'choreshare_apple_user_id';
 
+// Dev-only mock: when enabled, bypass the native Apple sign-in sheet and return
+// a deterministic credential. Lets contributors iterate on auth-adjacent flows
+// (sign out, profile, apartment join) without re-authenticating with iCloud on
+// every simulator boot. Guarded by both `__DEV__` and an explicit env opt-in so
+// it can never ship to production. See README → "Local development".
+const MOCK_APPLE_ENABLED =
+  __DEV__ && process.env.EXPO_PUBLIC_MOCK_APPLE === '1';
+const MOCK_APPLE_USER_ID = 'dev-apple-user';
+const MOCK_APPLE_NAME = 'Dev User';
+const MOCK_APPLE_EMAIL = 'dev@example.com';
+
 export interface AppleSignInResult {
   userId: string;
   name: string | null;
@@ -22,6 +33,7 @@ export class AppleSignInCancelledError extends Error {
 }
 
 export async function isAppleSignInAvailable(): Promise<boolean> {
+  if (MOCK_APPLE_ENABLED) return true;
   if (Platform.OS !== 'ios') return false;
   try {
     return await AppleAuthentication.isAvailableAsync();
@@ -48,6 +60,23 @@ function formatFullName(fullName: AppleAuthentication.AppleAuthenticationFullNam
  * Throws {@link AppleSignInCancelledError} when the user dismisses the sheet.
  */
 export async function signInWithApple(): Promise<AppleSignInResult> {
+  if (MOCK_APPLE_ENABLED) {
+    const userId = MOCK_APPLE_USER_ID;
+    const name = MOCK_APPLE_NAME;
+    const email = MOCK_APPLE_EMAIL;
+    try {
+      await SecureStore.setItemAsync(APPLE_USER_KEY, userId);
+    } catch {
+      // ignore — mock flow doesn't depend on SecureStore for correctness
+    }
+    try {
+      await upsertSignInUser(userId, { name, email, authProvider: 'apple' });
+    } catch (error) {
+      console.warn('[ChoreShare] Mock Apple sign-in: failed to upsert user', error);
+    }
+    return { userId, name, email };
+  }
+
   let credential: AppleAuthentication.AppleAuthenticationCredential;
   try {
     credential = await AppleAuthentication.signInAsync({
@@ -107,6 +136,14 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
  * or null if the user revoked access / the credential was never set.
  */
 export async function getCurrentAppleUserId(): Promise<string | null> {
+  if (MOCK_APPLE_ENABLED) {
+    try {
+      const stored = await SecureStore.getItemAsync(APPLE_USER_KEY);
+      return stored ?? null;
+    } catch {
+      return null;
+    }
+  }
   if (Platform.OS !== 'ios') return null;
   let stored: string | null;
   try {
