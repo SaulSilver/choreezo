@@ -16,6 +16,28 @@ export async function createOrUpdateUser(user: Omit<User, 'expoPushToken'>): Pro
   await setDoc(doc(db, 'users', user.id), user, { merge: true });
 }
 
+export async function upsertSignInUser(
+  id: string,
+  fields: { name?: string | null; email?: string | null; authProvider?: string }
+): Promise<void> {
+  // Strip undefined/null fields so Firestore merge does not overwrite existing
+  // values with nulls when the auth provider doesn't return them on a returning
+  // sign-in (Apple only sends name/email on the first authorization).
+  const data: Record<string, unknown> = {};
+  if (fields.name && fields.name.trim().length > 0) data.name = fields.name.trim();
+  if (fields.email && fields.email.trim().length > 0) data.email = fields.email.trim();
+  if (fields.authProvider) data.authProvider = fields.authProvider;
+  await setDoc(doc(db, 'users', id), data, { merge: true });
+}
+
+export async function getUser(
+  id: string
+): Promise<(User & { email?: string | null }) | null> {
+  const snap = await getDoc(doc(db, 'users', id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as User & { email?: string | null };
+}
+
 export async function createApartment(
   name: string,
   createdBy: string,

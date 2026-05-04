@@ -4,7 +4,7 @@ A mobile app for fairly distributing household chores among roommates. Built wit
 
 ## Features
 
-- **Profile Setup** – Enter your name once and a local UUID is generated for you — no account required
+- **Profile Setup** – Sign in with Apple on iOS, or enter your name once and a local UUID is generated for you
 - **Apartment Management** – Create or join apartments with a 6-character invite code
 - **Weekly Schedule** – Auto-generated chore assignments with a 7-day day-picker view
 - **My Chores** – Personal view of all assigned chores for the week
@@ -25,6 +25,7 @@ A mobile app for fairly distributing household chores among roommates. Built wit
 | Cloud Functions | Firebase Functions v4 (Node 18) |
 | Date Utilities | date-fns |
 | Storage | AsyncStorage (profile + settings), expo-secure-store |
+| Auth | Sign in with Apple (`expo-apple-authentication`) on iOS, local profile fallback |
 
 ## Project Structure
 
@@ -142,6 +143,28 @@ npm run deploy
 ```bash
 eas build --platform ios
 ```
+
+## Sign in with Apple
+
+ChoreShare supports **Sign in with Apple** on iOS via [`expo-apple-authentication`](https://docs.expo.dev/versions/latest/sdk/apple-authentication/). The button appears on the first-launch / profile-setup screen on iOS devices that support the flow; the existing name-entry fallback continues to work everywhere else.
+
+### What's already configured in this repo
+
+- `expo-apple-authentication` is listed in `package.json`.
+- `app.json` enables `ios.usesAppleSignIn: true` and registers the `expo-apple-authentication` config plugin. At prebuild / EAS build time Expo generates the `com.apple.developer.applesignin` entry in `ios/<App>/<App>.entitlements` automatically — there is no native `ios/` folder to edit by hand.
+- The Apple credential's stable user identifier is persisted via `expo-secure-store` (key `choreshare_apple_user_id`) so returning users are matched to their existing Firestore `users/{userId}` document. Apple's name + email are written on the first sign-in only (Apple does not return them on subsequent sign-ins).
+- Cancellation and errors are handled in `ProfileSetupScreen` — cancellation is silent, other errors surface a user-friendly alert.
+
+### One-time maintainer setup
+
+1. **Apple Developer portal** → *Certificates, Identifiers & Profiles* → select the App ID `com.choreshare.app` and enable the **Sign In with Apple** capability. Save.
+2. Regenerate the iOS provisioning profile (EAS does this automatically on the next `eas build --platform ios`).
+3. **Optional — Firebase Auth provider:** ChoreShare currently uses Firestore-only (no Firebase Auth). If you later wire Firebase Auth in, also enable the **Apple** sign-in provider under *Firebase Console → Authentication → Sign-in method* and add the Service ID + key per the [Firebase docs](https://firebase.google.com/docs/auth/ios/apple).
+4. Build and run on a real device or the iOS Simulator (iOS 13+). The simulator must be signed in to an iCloud account that has Sign in with Apple enabled.
+
+### Out of scope
+
+Android / web Sign in with Apple, cross-provider account linking, and the account-deletion flow are tracked separately.
 
 ## Environment Variables
 

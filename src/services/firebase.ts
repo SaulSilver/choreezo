@@ -11,10 +11,10 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Warn developers when placeholder Firebase config values are detected
-if (__DEV__ && firebaseConfig.apiKey.startsWith("YOUR_")) {
+// Warn developers when Firebase config is missing or still on placeholder values
+if (__DEV__ && (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_"))) {
   console.warn(
-    "[ChoreShare] Firebase is not configured. Replace placeholder values in src/services/firebase.ts with your actual Firebase project credentials.",
+    "[ChoreShare] Firebase is not configured. Set the EXPO_PUBLIC_FIREBASE_* env vars (see src/services/firebase.ts) with your actual Firebase project credentials.",
   );
 }
 
