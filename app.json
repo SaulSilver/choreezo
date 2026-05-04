@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "ChoreShare",
+    "slug": "choreshare",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6366F1"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.choreshare.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ChoreShare does not use the camera.",
+        "NSPhotoLibraryUsageDescription": "ChoreShare does not access your photo library.",
+        "NSMicrophoneUsageDescription": "ChoreShare does not use the microphone."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6366F1"
+      },
+      "package": "com.choreshare.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6366F1",
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "%(count)s chore updates"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
