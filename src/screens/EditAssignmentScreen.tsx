@@ -12,7 +12,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useAssignmentStore } from '../store/assignmentStore';
-import { useAuthStore } from '../store/authStore';
+import { useProfileStore } from '../store/profileStore';
 import { updateAssignment, swapAssignments } from '../services/assignments';
 import { formatDisplayDate, parseDate } from '../utils/dateUtils';
 import UserAvatar from '../components/UserAvatar';
@@ -28,7 +28,7 @@ export default function EditAssignmentScreen() {
 
   const { members, chores, apartment } = useApartmentStore();
   const { assignments, updateAssignment: updateLocalAssignment } = useAssignmentStore();
-  const { user } = useAuthStore();
+  const { userId } = useProfileStore();
 
   const assignment = assignments.find((a) => a.id === assignmentId);
   const [selectedUserId, setSelectedUserId] = useState(assignment?.userId ?? '');
@@ -152,7 +152,7 @@ export default function EditAssignmentScreen() {
                     {aUser && <UserAvatar name={aUser.name} size={36} />}
                     <View style={styles.userInfo}>
                       <Text style={styles.userName}>
-                        {aUser?.name ?? 'Unknown'}{a.userId === user?.id ? ' (You)' : ''}
+                        {aUser?.name ?? 'Unknown'}{a.userId === userId ? ' (You)' : ''}
                       </Text>
                       <Text style={styles.userDate}>
                         {formatDisplayDate(parseDate(a.date))}
@@ -177,7 +177,7 @@ export default function EditAssignmentScreen() {
                 >
                   <UserAvatar name={member.name} size={36} />
                   <Text style={styles.userName}>
-                    {member.name}{member.id === user?.id ? ' (You)' : ''}
+                    {member.name}{member.id === userId ? ' (You)' : ''}
                   </Text>
                   {isSelected && <Text style={styles.checkmark}>✓</Text>}
                 </TouchableOpacity>

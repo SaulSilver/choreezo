@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { useAuthStore } from '../store/authStore';
+import { useProfileStore } from '../store/profileStore';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useAssignmentStore } from '../store/assignmentStore';
 import { getAssignmentsForWeek, generateAndSaveWeekAssignments } from '../services/assignments';
@@ -24,7 +24,7 @@ type NavProp = StackNavigationProp<AppStackParamList, 'EditAssignment'>;
 
 export default function WeeklyScheduleScreen() {
   const navigation = useNavigation<NavProp>();
-  const { user } = useAuthStore();
+  const { userId } = useProfileStore();
   const { apartment, members, chores } = useApartmentStore();
   const { assignments, setAssignments, isLoading, setLoading, setError } = useAssignmentStore();
 
@@ -122,7 +122,7 @@ export default function WeeklyScheduleScreen() {
               assignment={item}
               chore={chore}
               assignedUser={assignedUser}
-              isCurrentUser={item.userId === user?.id}
+              isCurrentUser={item.userId === userId}
               onPress={() =>
                 navigation.navigate('EditAssignment', { assignmentId: item.id })
               }
