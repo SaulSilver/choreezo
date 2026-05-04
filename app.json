@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.choreshare.app",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "ChoreShare does not use the camera.",
         "NSPhotoLibraryUsageDescription": "ChoreShare does not access your photo library.",
@@ -41,7 +42,8 @@
           "androidCollapsedTitle": "%(count)s chore updates"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

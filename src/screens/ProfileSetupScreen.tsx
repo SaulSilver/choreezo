@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,11 +10,28 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useProfileStore, generateUserId } from "../store/profileStore";
+import {
+  isAppleSignInAvailable,
+  AppleSignInCancelledError,
+} from "../services/auth";
 
 export default function ProfileSetupScreen() {
   const [displayName, setDisplayName] = useState("");
-  const { setProfile } = useProfileStore();
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const [appleSubmitting, setAppleSubmitting] = useState(false);
+  const { setProfile, signInWithApple } = useProfileStore();
+
+  useEffect(() => {
+    let cancelled = false;
+    isAppleSignInAvailable().then((available) => {
+      if (!cancelled) setAppleAvailable(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleContinue = async () => {
     const trimmed = displayName.trim();
@@ -22,10 +39,34 @@ export default function ProfileSetupScreen() {
       Alert.alert("Name Required", "Please enter your name to continue.");
       return;
     }
-    console.log("handleContinue");
     const userId = generateUserId();
-    console.log("userId", userId);
     await setProfile(userId, trimmed);
+  };
+
+  const handleAppleSignIn = async () => {
+    if (appleSubmitting) return;
+    setAppleSubmitting(true);
+    try {
+      await signInWithApple();
+      // If Apple didn't return a name (returning user, no Firestore record yet)
+      // we leave the user on this screen so they can enter one — the existing
+      // gating in RootNavigator already requires both userId and name.
+      if (!useProfileStore.getState().name) {
+        Alert.alert(
+          "One more step",
+          "Apple didn't share your name. Please enter how you'd like to be shown to roommates.",
+        );
+      }
+    } catch (error) {
+      if (error instanceof AppleSignInCancelledError) return;
+      console.error("Apple sign-in failed", error);
+      Alert.alert(
+        "Sign-in failed",
+        "We couldn't complete Sign in with Apple. Please try again.",
+      );
+    } finally {
+      setAppleSubmitting(false);
+    }
   };
 
   return (
@@ -43,6 +84,27 @@ export default function ProfileSetupScreen() {
         </View>
 
         <View style={styles.form}>
+          {appleAvailable && (
+            <View style={styles.appleSection}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={
+                  AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+                }
+                buttonStyle={
+                  AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                }
+                cornerRadius={12}
+                style={styles.appleButton}
+                onPress={handleAppleSignIn}
+              />
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or continue with a name</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            </View>
+          )}
+
           <Text style={styles.label}>Your Name</Text>
           <TextInput
             style={styles.input}
@@ -87,6 +149,23 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   form: { paddingHorizontal: 24 },
+  appleSection: { marginBottom: 20 },
+  // Apple HIG: minimum 44pt tap target; we use 48 for comfort.
+  appleButton: { width: "100%", height: 48 },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: "#E5E7EB" },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 12,
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   label: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 8 },
   input: {
     backgroundColor: "#FFFFFF",
