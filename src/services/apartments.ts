@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -92,4 +93,9 @@ export async function getApartmentMembers(apartmentId: string): Promise<User[]> 
 
 export async function leaveApartment(userId: string): Promise<void> {
   await setDoc(doc(db, 'users', userId), { apartmentId: null }, { merge: true });
+}
+
+export async function deleteAccount(userId: string): Promise<void> {
+  if (!userId) throw new Error('User ID is required');
+  await deleteDoc(doc(db, 'users', userId));
 }

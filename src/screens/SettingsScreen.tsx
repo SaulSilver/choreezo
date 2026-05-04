@@ -13,7 +13,7 @@ import {
 import { useProfileStore } from '../store/profileStore';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { leaveApartment } from '../services/apartments';
+import { leaveApartment, deleteAccount } from '../services/apartments';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UserAvatar from '../components/UserAvatar';
 
@@ -80,6 +80,40 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    if (!userId) return;
+    if (apartment && apartment.createdBy === userId) {
+      Alert.alert(
+        'Cannot Delete Account',
+        'You are the apartment admin. Please transfer ownership or delete the apartment before deleting your account.'
+      );
+      return;
+    }
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? All your data will be removed. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await deleteAccount(userId);
+              await clearProfile();
+            } catch (err: unknown) {
+              const error = err as { message?: string };
+              Alert.alert('Error', error.message ?? 'Failed to delete account');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleShareInviteCode = async () => {
@@ -162,6 +196,9 @@ export default function SettingsScreen() {
             )}
             <TouchableOpacity style={styles.dangerButton} onPress={handleSignOut}>
               <Text style={styles.dangerButtonText}>Sign Out</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteAccount}>
+              <Text style={styles.dangerButtonText}>Delete Account</Text>
             </TouchableOpacity>
           </View>
         )}
