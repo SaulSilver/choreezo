@@ -180,7 +180,7 @@ export default function EditAssignmentScreen() {
         ) : (
           <>
             <Text style={styles.sectionTitle}>Assign to:</Text>
-            {userId && assignment.userId !== userId && (
+            {userId && assignment.userId === null && (
               <TouchableOpacity
                 style={styles.claimButton}
                 onPress={handleClaimForMe}

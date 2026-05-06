@@ -11,6 +11,9 @@ import { formatDate } from './dateUtils';
  * as-is so that user choices are never overwritten.
  */
 export function generateWeekAssignments(
+  // `_users` is retained for backward compatibility with existing callers.
+  // Auto-assignment based on the user list has been removed in favor of
+  // manual claiming via the UI; chores are now seeded unassigned.
   _users: User[],
   chores: Chore[],
   weekDates: Date[],
