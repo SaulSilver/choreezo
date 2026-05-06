@@ -13,7 +13,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useAssignmentStore } from '../store/assignmentStore';
 import { useProfileStore } from '../store/profileStore';
-import { updateAssignment, swapAssignments } from '../services/assignments';
+import { updateAssignment } from '../services/assignments';
 import { formatDisplayDate, parseDate } from '../utils/dateUtils';
 import UserAvatar from '../components/UserAvatar';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -34,8 +34,6 @@ export default function EditAssignmentScreen() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
     assignment?.userId ?? null
   );
-  const [swapMode, setSwapMode] = useState(false);
-  const [swapTargetId, setSwapTargetId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -47,9 +45,6 @@ export default function EditAssignmentScreen() {
   }
 
   const chore = chores.find((c) => c.id === assignment.choreId);
-  const sameChoreAssignments = assignments.filter(
-    (a) => a.choreId === assignment.choreId && a.id !== assignment.id
-  );
 
   const handleSave = async () => {
     if (selectedUserId === assignment.userId) {
@@ -80,29 +75,6 @@ export default function EditAssignmentScreen() {
     setSelectedUserId(userId);
   };
 
-  const handleSwap = async (targetAssignmentId: string) => {
-    const targetAssignment = assignments.find((a) => a.id === targetAssignmentId);
-    if (!targetAssignment) return;
-    try {
-      setIsLoading(true);
-      await swapAssignments(apartment.id, assignment, targetAssignment);
-      updateLocalAssignment(assignment.id, {
-        userId: targetAssignment.userId,
-        manuallyAssigned: true,
-      });
-      updateLocalAssignment(targetAssignment.id, {
-        userId: assignment.userId,
-        manuallyAssigned: true,
-      });
-      navigation.goBack();
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      Alert.alert('Error', error.message ?? 'Failed to swap assignments');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   if (isLoading) return <LoadingSpinner fullScreen message="Saving changes..." />;
 
   return (
@@ -116,109 +88,44 @@ export default function EditAssignmentScreen() {
           </Text>
         </View>
 
-        <View style={styles.modeToggle}>
+        <Text style={styles.sectionTitle}>Assign to:</Text>
+        {userId && assignment.userId === null && (
           <TouchableOpacity
-            style={[styles.modeBtn, !swapMode && styles.activeModeBtn]}
-            onPress={() => setSwapMode(false)}
+            style={styles.claimButton}
+            onPress={handleClaimForMe}
           >
-            <Text style={[styles.modeBtnText, !swapMode && styles.activeModeBtnText]}>
-              Reassign
-            </Text>
+            <Text style={styles.claimButtonText}>✋ Claim for me</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modeBtn, swapMode && styles.activeModeBtn]}
-            onPress={() => setSwapMode(true)}
-          >
-            <Text style={[styles.modeBtnText, swapMode && styles.activeModeBtnText]}>
-              🔄 Swap
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {swapMode ? (
-          <>
-            <Text style={styles.sectionTitle}>Select a chore to swap with:</Text>
-            {sameChoreAssignments.length === 0 ? (
-              <Text style={styles.noSwap}>No other assignments of this chore to swap with.</Text>
-            ) : (
-              sameChoreAssignments.map((a) => {
-                const aUser = members.find((m) => m.id === a.userId);
-                const isSelected = swapTargetId === a.id;
-                return (
-                  <TouchableOpacity
-                    key={a.id}
-                    style={[styles.userRow, isSelected && styles.selectedRow]}
-                    onPress={() => {
-                      if (isSelected) {
-                        handleSwap(a.id);
-                      } else {
-                        setSwapTargetId(a.id);
-                      }
-                    }}
-                  >
-                    {aUser ? (
-                      <UserAvatar name={aUser.name} size={36} />
-                    ) : (
-                      <View style={styles.unassignedIcon}>
-                        <Text style={styles.unassignedIconText}>—</Text>
-                      </View>
-                    )}
-                    <View style={styles.userInfo}>
-                      <Text style={styles.userName}>
-                        {aUser ? `${aUser.name}${a.userId === userId ? ' (You)' : ''}` : 'Unassigned'}
-                      </Text>
-                      <Text style={styles.userDate}>
-                        {formatDisplayDate(parseDate(a.date))}
-                      </Text>
-                    </View>
-                    {isSelected && <Text style={styles.swapConfirm}>Tap to confirm swap</Text>}
-                  </TouchableOpacity>
-                );
-              })
-            )}
-          </>
-        ) : (
-          <>
-            <Text style={styles.sectionTitle}>Assign to:</Text>
-            {userId && assignment.userId === null && (
-              <TouchableOpacity
-                style={styles.claimButton}
-                onPress={handleClaimForMe}
-              >
-                <Text style={styles.claimButtonText}>✋ Claim for me</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.userRow, selectedUserId === null && styles.selectedRow]}
-              onPress={() => setSelectedUserId(null)}
-            >
-              <View style={styles.unassignedIcon}>
-                <Text style={styles.unassignedIconText}>—</Text>
-              </View>
-              <Text style={styles.userName}>Unassigned</Text>
-              {selectedUserId === null && <Text style={styles.checkmark}>✓</Text>}
-            </TouchableOpacity>
-            {members.map((member) => {
-              const isSelected = selectedUserId === member.id;
-              return (
-                <TouchableOpacity
-                  key={member.id}
-                  style={[styles.userRow, isSelected && styles.selectedRow]}
-                  onPress={() => setSelectedUserId(member.id)}
-                >
-                  <UserAvatar name={member.name} size={36} />
-                  <Text style={styles.userName}>
-                    {member.name}{member.id === userId ? ' (You)' : ''}
-                  </Text>
-                  {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                </TouchableOpacity>
-              );
-            })}
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            </TouchableOpacity>
-          </>
         )}
+        <TouchableOpacity
+          style={[styles.userRow, selectedUserId === null && styles.selectedRow]}
+          onPress={() => setSelectedUserId(null)}
+        >
+          <View style={styles.unassignedIcon}>
+            <Text style={styles.unassignedIconText}>—</Text>
+          </View>
+          <Text style={styles.userName}>Unassigned</Text>
+          {selectedUserId === null && <Text style={styles.checkmark}>✓</Text>}
+        </TouchableOpacity>
+        {members.map((member) => {
+          const isSelected = selectedUserId === member.id;
+          return (
+            <TouchableOpacity
+              key={member.id}
+              style={[styles.userRow, isSelected && styles.selectedRow]}
+              onPress={() => setSelectedUserId(member.id)}
+            >
+              <UserAvatar name={member.name} size={36} />
+              <Text style={styles.userName}>
+                {member.name}{member.id === userId ? ' (You)' : ''}
+              </Text>
+              {isSelected && <Text style={styles.checkmark}>✓</Text>}
+            </TouchableOpacity>
+          );
+        })}
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <Text style={styles.saveButtonText}>Save Changes</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -231,17 +138,6 @@ const styles = StyleSheet.create({
   choreIcon: { fontSize: 48, marginBottom: 8 },
   choreName: { fontSize: 24, fontWeight: '800', color: '#1F2937', marginBottom: 4 },
   choreDate: { fontSize: 15, color: '#6B7280' },
-  modeToggle: {
-    flexDirection: 'row',
-    backgroundColor: '#E5E7EB',
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 24,
-  },
-  modeBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-  activeModeBtn: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  modeBtnText: { fontSize: 14, color: '#6B7280', fontWeight: '500' },
-  activeModeBtnText: { color: '#1F2937', fontWeight: '700' },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
   userRow: {
     flexDirection: 'row',
@@ -254,12 +150,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   selectedRow: { borderColor: '#6366F1', backgroundColor: '#EEF2FF' },
-  userInfo: { flex: 1, marginLeft: 12 },
   userName: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginLeft: 12 },
-  userDate: { fontSize: 13, color: '#6B7280', marginTop: 2 },
   checkmark: { fontSize: 20, color: '#6366F1', fontWeight: '700' },
-  noSwap: { fontSize: 15, color: '#9CA3AF', textAlign: 'center', marginTop: 16 },
-  swapConfirm: { fontSize: 12, color: '#6366F1', fontWeight: '600' },
   saveButton: {
     backgroundColor: '#6366F1',
     borderRadius: 12,

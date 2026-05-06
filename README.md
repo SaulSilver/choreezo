@@ -8,7 +8,7 @@ A mobile app for fairly distributing household chores among roommates. Built wit
 - **Apartment Management** – Create or join apartments with a 6-character invite code
 - **Weekly Schedule** – Browse the week's chores in a 7-day day-picker view and pick the ones you want
 - **My Chores** – Personal view of all the chores you've claimed for the week
-- **Edit, Claim & Swap** – Claim unassigned chores, reassign to any roommate, leave a chore unassigned, or swap with another assignment
+- **Edit & Claim** – Claim unassigned chores, reassign to any roommate, or leave a chore unassigned
 - **Push Notifications** – Daily reminders and weekly summaries via Expo Push Notifications
 - **Cloud Functions** – Scheduled Firebase Cloud Functions for auto-generation and notifications
 
@@ -60,7 +60,7 @@ choreezo/
 │   │   ├── ApartmentScreen.tsx     # Create / join apartment
 │   │   ├── WeeklyScheduleScreen.tsx # 7-day chore schedule
 │   │   ├── MyChoresScreen.tsx      # Personal chore list
-│   │   ├── EditAssignmentScreen.tsx # Reassign / swap chores
+│   │   ├── EditAssignmentScreen.tsx # Reassign / claim chores
 │   │   └── SettingsScreen.tsx      # Profile, invite code, notifications
 │   └── navigation/
 │       ├── index.tsx               # Root navigator (profile → apartment → app)
