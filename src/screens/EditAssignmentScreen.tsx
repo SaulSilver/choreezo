@@ -31,7 +31,9 @@ export default function EditAssignmentScreen() {
   const { userId } = useProfileStore();
 
   const assignment = assignments.find((a) => a.id === assignmentId);
-  const [selectedUserId, setSelectedUserId] = useState(assignment?.userId ?? '');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(
+    assignment?.userId ?? null
+  );
   const [swapMode, setSwapMode] = useState(false);
   const [swapTargetId, setSwapTargetId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,11 +60,11 @@ export default function EditAssignmentScreen() {
       setIsLoading(true);
       await updateAssignment(apartment.id, assignment.id, {
         userId: selectedUserId,
-        manuallyAssigned: true,
+        manuallyAssigned: selectedUserId !== null,
       });
       updateLocalAssignment(assignment.id, {
         userId: selectedUserId,
-        manuallyAssigned: true,
+        manuallyAssigned: selectedUserId !== null,
       });
       navigation.goBack();
     } catch (err: unknown) {
@@ -71,6 +73,11 @@ export default function EditAssignmentScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleClaimForMe = () => {
+    if (!userId) return;
+    setSelectedUserId(userId);
   };
 
   const handleSwap = async (targetAssignmentId: string) => {
@@ -149,10 +156,16 @@ export default function EditAssignmentScreen() {
                       }
                     }}
                   >
-                    {aUser && <UserAvatar name={aUser.name} size={36} />}
+                    {aUser ? (
+                      <UserAvatar name={aUser.name} size={36} />
+                    ) : (
+                      <View style={styles.unassignedIcon}>
+                        <Text style={styles.unassignedIconText}>—</Text>
+                      </View>
+                    )}
                     <View style={styles.userInfo}>
                       <Text style={styles.userName}>
-                        {aUser?.name ?? 'Unknown'}{a.userId === userId ? ' (You)' : ''}
+                        {aUser ? `${aUser.name}${a.userId === userId ? ' (You)' : ''}` : 'Unassigned'}
                       </Text>
                       <Text style={styles.userDate}>
                         {formatDisplayDate(parseDate(a.date))}
@@ -167,6 +180,24 @@ export default function EditAssignmentScreen() {
         ) : (
           <>
             <Text style={styles.sectionTitle}>Assign to:</Text>
+            {userId && assignment.userId !== userId && (
+              <TouchableOpacity
+                style={styles.claimButton}
+                onPress={handleClaimForMe}
+              >
+                <Text style={styles.claimButtonText}>✋ Claim for me</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.userRow, selectedUserId === null && styles.selectedRow]}
+              onPress={() => setSelectedUserId(null)}
+            >
+              <View style={styles.unassignedIcon}>
+                <Text style={styles.unassignedIconText}>—</Text>
+              </View>
+              <Text style={styles.userName}>Unassigned</Text>
+              {selectedUserId === null && <Text style={styles.checkmark}>✓</Text>}
+            </TouchableOpacity>
             {members.map((member) => {
               const isSelected = selectedUserId === member.id;
               return (
@@ -237,4 +268,21 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   saveButtonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' },
+  claimButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  claimButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  unassignedIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unassignedIconText: { color: '#9CA3AF', fontSize: 18, fontWeight: '700' },
 });

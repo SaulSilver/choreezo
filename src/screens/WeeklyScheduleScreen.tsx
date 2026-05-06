@@ -35,7 +35,7 @@ export default function WeeklyScheduleScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadAssignments = useCallback(async () => {
-    if (!apartment || members.length === 0 || chores.length === 0) return;
+    if (!apartment || chores.length === 0) return;
     const weekNumber = getWeekNumber();
     setLoading(true);
     try {

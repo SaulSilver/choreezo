@@ -24,9 +24,15 @@ export interface Chore {
 export interface Assignment {
   id: string;
   apartmentId: string;
-  userId: string;
+  /** ID of the user who claimed the chore, or `null` if the chore is unassigned. */
+  userId: string | null;
   choreId: string;
   date: string; // ISO string
   weekNumber: number;
+  /**
+   * Retained for backward compatibility with existing Firestore documents.
+   * All assignments are now created unassigned and claimed manually, so this
+   * flag is no longer used to drive scheduling decisions.
+   */
   manuallyAssigned: boolean;
 }

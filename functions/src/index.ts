@@ -8,7 +8,8 @@ const db = admin.firestore();
 interface Assignment {
   id: string;
   apartmentId: string;
-  userId: string;
+  /** ID of the user who claimed the chore, or `null` if the chore is unassigned. */
+  userId: string | null;
   choreId: string;
   date: string;
   weekNumber: number;
@@ -50,18 +51,18 @@ function getWeekNumber(date: Date): number {
 }
 
 function generateAssignments(
-  users: User[],
   chores: Chore[],
   weekDates: Date[],
   weekOffset: number
 ): Omit<Assignment, 'id' | 'apartmentId'>[] {
+  // All assignments are seeded as unassigned (userId === null) so that users
+  // can manually claim the chores they want via the app UI.
   const assignments: Omit<Assignment, 'id' | 'apartmentId'>[] = [];
-  weekDates.forEach((date, dayIndex) => {
+  weekDates.forEach((date) => {
     const dateStr = date.toISOString().split('T')[0];
-    chores.forEach((chore, choreIndex) => {
-      const userIndex = (dayIndex + choreIndex + weekOffset) % users.length;
+    chores.forEach((chore) => {
       assignments.push({
-        userId: users[userIndex].id,
+        userId: null,
         choreId: chore.id,
         date: dateStr,
         weekNumber: weekOffset,
@@ -97,8 +98,7 @@ export const weeklyScheduler = functions.pubsub
     for (const aptDoc of apartmentsSnap.docs) {
       const apartment = { id: aptDoc.id, ...aptDoc.data() } as Apartment;
 
-      const [usersSnap, choresSnap, existingSnap] = await Promise.all([
-        db.collection('users').where('apartmentId', '==', apartment.id).get(),
+      const [choresSnap, existingSnap] = await Promise.all([
         db.collection('apartments').doc(apartment.id).collection('chores').get(),
         db
           .collection('apartments')
@@ -110,10 +110,9 @@ export const weeklyScheduler = functions.pubsub
 
       if (!existingSnap.empty) continue;
 
-      const users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() } as User));
       const chores = choresSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Chore));
 
-      if (users.length === 0 || chores.length === 0) continue;
+      if (chores.length === 0) continue;
 
       const startOfWeek = new Date(nextWeekDate);
       startOfWeek.setDate(nextWeekDate.getDate() - nextWeekDate.getDay() + 1);
@@ -123,7 +122,7 @@ export const weeklyScheduler = functions.pubsub
         return d;
       });
 
-      const newAssignments = generateAssignments(users, chores, weekDates, weekNumber);
+      const newAssignments = generateAssignments(chores, weekDates, weekNumber);
 
       const batch = db.batch();
       for (const a of newAssignments) {
