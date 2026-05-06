@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  setDoc,
   getDocs,
   updateDoc,
   query,
@@ -12,7 +11,7 @@ import {
 import { db } from './firebase';
 import { Assignment, User, Chore } from '../models';
 import { generateWeekAssignments } from '../utils/scheduling';
-import { getWeekNumber, getWeekDates } from '../utils/dateUtils';
+import { getWeekDates } from '../utils/dateUtils';
 
 export async function getAssignmentsForWeek(
   apartmentId: string,
@@ -61,27 +60,4 @@ export async function updateAssignment(
 ): Promise<void> {
   const ref = doc(db, 'apartments', apartmentId, 'assignments', assignmentId);
   await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() });
-}
-
-export async function swapAssignments(
-  apartmentId: string,
-  assignmentA: Assignment,
-  assignmentB: Assignment
-): Promise<void> {
-  const batch = writeBatch(db);
-  const refA = doc(db, 'apartments', apartmentId, 'assignments', assignmentA.id);
-  const refB = doc(db, 'apartments', apartmentId, 'assignments', assignmentB.id);
-
-  batch.update(refA, {
-    userId: assignmentB.userId,
-    manuallyAssigned: true,
-    updatedAt: serverTimestamp(),
-  });
-  batch.update(refB, {
-    userId: assignmentA.userId,
-    manuallyAssigned: true,
-    updatedAt: serverTimestamp(),
-  });
-
-  await batch.commit();
 }

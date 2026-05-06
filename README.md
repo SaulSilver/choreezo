@@ -6,9 +6,9 @@ A mobile app for fairly distributing household chores among roommates. Built wit
 
 - **Profile Setup** – Sign in with Apple on iOS, or enter your name once and a local UUID is generated for you
 - **Apartment Management** – Create or join apartments with a 6-character invite code
-- **Weekly Schedule** – Auto-generated chore assignments with a 7-day day-picker view
-- **My Chores** – Personal view of all assigned chores for the week
-- **Edit & Swap** – Reassign chores to any roommate or swap with another assignment
+- **Weekly Schedule** – Browse the week's chores in a 7-day day-picker view and pick the ones you want
+- **My Chores** – Personal view of all the chores you've claimed for the week
+- **Edit & Claim** – Claim unassigned chores, reassign to any roommate, or leave a chore unassigned
 - **Push Notifications** – Daily reminders and weekly summaries via Expo Push Notifications
 - **Cloud Functions** – Scheduled Firebase Cloud Functions for auto-generation and notifications
 
@@ -60,7 +60,7 @@ choreezo/
 │   │   ├── ApartmentScreen.tsx     # Create / join apartment
 │   │   ├── WeeklyScheduleScreen.tsx # 7-day chore schedule
 │   │   ├── MyChoresScreen.tsx      # Personal chore list
-│   │   ├── EditAssignmentScreen.tsx # Reassign / swap chores
+│   │   ├── EditAssignmentScreen.tsx # Reassign / claim chores
 │   │   └── SettingsScreen.tsx      # Profile, invite code, notifications
 │   └── navigation/
 │       ├── index.tsx               # Root navigator (profile → apartment → app)
@@ -110,15 +110,9 @@ Update `app.json` with your EAS project ID:
 npx expo start
 ```
 
-## Scheduling Algorithm
+## Scheduling
 
-Chores are distributed using a round-robin algorithm that rotates assignments by day and chore index:
-
-```
-userIndex = (dayIndex + choreIndex + weekNumber) % numberOfUsers
-```
-
-This ensures each roommate gets an equal share of chores and the rotation shifts each week.
+At the start of each week, an empty assignment slot is created for every (chore × day) pair and left **unassigned**. Roommates browse the schedule and **manually claim** the chores they want to do — chores can also be left unassigned indefinitely. Existing claims are never overwritten when the week is (re)seeded.
 
 ## Firebase Cloud Functions
 
@@ -126,7 +120,7 @@ Three scheduled functions run in the background:
 
 | Function | Schedule | Description |
 |---|---|---|
-| `weeklyScheduler` | Sunday midnight UTC | Generates next week's assignments for all apartments |
+| `weeklyScheduler` | Sunday midnight UTC | Seeds next week's unassigned chore slots for all apartments |
 | `sendDailyReminders` | 8:00 AM UTC daily | Sends push notifications for today's chores |
 | `sendWeeklySummary` | Sunday 9:00 AM UTC | Sends weekly chore count summary |
 

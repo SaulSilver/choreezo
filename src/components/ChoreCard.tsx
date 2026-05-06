@@ -18,18 +18,23 @@ export default function ChoreCard({
   isCurrentUser,
   onPress,
 }: Props) {
+  const isUnassigned = !assignedUser;
   return (
     <TouchableOpacity
-      style={[styles.card, isCurrentUser && styles.highlighted]}
+      style={[
+        styles.card,
+        isCurrentUser && styles.highlighted,
+        isUnassigned && styles.unassignedCard,
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.left}>
         <Text style={styles.icon}>{chore.icon ?? '🧹'}</Text>
-        <View>
+        <View style={styles.choreTextWrap}>
           <Text style={styles.choreName}>{chore.name}</Text>
-          {assignment.manuallyAssigned && (
-            <Text style={styles.manualBadge}>Manually assigned</Text>
+          {isUnassigned && (
+            <Text style={styles.claimHint}>Tap to claim</Text>
           )}
         </View>
       </View>
@@ -42,7 +47,9 @@ export default function ChoreCard({
             </Text>
           </>
         ) : (
-          <Text style={styles.unassigned}>Unassigned</Text>
+          <View style={styles.unassignedBadge}>
+            <Text style={styles.unassignedBadgeText}>Unassigned</Text>
+          </View>
         )}
       </View>
     </TouchableOpacity>
@@ -70,10 +77,19 @@ const styles = StyleSheet.create({
     borderColor: '#6366F1',
     backgroundColor: '#EEF2FF',
   },
+  unassignedCard: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FAFAFA',
+  },
   left: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  choreTextWrap: {
+    flexShrink: 1,
   },
   icon: {
     fontSize: 28,
@@ -84,10 +100,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
   },
-  manualBadge: {
-    fontSize: 11,
+  claimHint: {
+    fontSize: 12,
     color: '#6366F1',
     marginTop: 2,
+    fontWeight: '600',
   },
   right: {
     alignItems: 'center',
@@ -100,9 +117,17 @@ const styles = StyleSheet.create({
     maxWidth: 60,
     textAlign: 'center',
   },
-  unassigned: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    fontStyle: 'italic',
+  unassignedBadge: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  unassignedBadgeText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
   },
 });

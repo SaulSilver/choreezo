@@ -1,43 +1,49 @@
 import { User, Chore, Assignment } from '../models';
 import { formatDate } from './dateUtils';
 
+/**
+ * Build the set of assignment slots for a week.
+ *
+ * Chores are no longer auto-assigned to users on a rotating basis. Instead,
+ * one **unassigned** slot is created for every (date, chore) pair so that
+ * users can browse and claim the chores they want via the UI. Existing
+ * assignments (whether claimed or already left unassigned) are preserved
+ * as-is so that user choices are never overwritten.
+ */
 export function generateWeekAssignments(
-  users: User[],
+  // `_users` is retained for backward compatibility with existing callers.
+  // Auto-assignment based on the user list has been removed in favor of
+  // manual claiming via the UI; chores are now seeded unassigned.
+  _users: User[],
   chores: Chore[],
   weekDates: Date[],
   weekOffset: number,
   existingAssignments: Assignment[]
 ): Assignment[] {
-  if (users.length === 0 || chores.length === 0) return [];
+  if (chores.length === 0) return [];
 
-  const manuallyAssigned = new Set(
-    existingAssignments
-      .filter((a) => a.manuallyAssigned)
-      .map((a) => `${a.date}-${a.choreId}`)
-  );
+  const existingByKey = new Map<string, Assignment>();
+  for (const a of existingAssignments) {
+    existingByKey.set(`${a.date}-${a.choreId}`, a);
+  }
 
   const assignments: Assignment[] = [];
 
-  weekDates.forEach((date, dayIndex) => {
+  weekDates.forEach((date) => {
     const dateStr = formatDate(date);
 
-    chores.forEach((chore, choreIndex) => {
+    chores.forEach((chore) => {
       const key = `${dateStr}-${chore.id}`;
-      if (manuallyAssigned.has(key)) {
-        const existing = existingAssignments.find(
-          (a) => a.date === dateStr && a.choreId === chore.id
-        );
-        if (existing) {
-          assignments.push(existing);
-          return;
-        }
+      const existing = existingByKey.get(key);
+      if (existing) {
+        assignments.push(existing);
+        return;
       }
 
-      const userIndex = (dayIndex + choreIndex + weekOffset) % users.length;
       assignments.push({
         id: '', // populated by Firestore after write
         apartmentId: '', // populated by caller before write
-        userId: users[userIndex].id,
+        userId: null,
         choreId: chore.id,
         date: dateStr,
         weekNumber: weekOffset,
