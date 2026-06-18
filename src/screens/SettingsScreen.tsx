@@ -165,8 +165,8 @@ export default function SettingsScreen() {
   const handleShareInviteCode = async () => {
     if (!apartment) return;
     await Share.share({
-      message: `Join our apartment "${apartment.name}" on ChoreShare! Use invite code: ${apartment.inviteCode}`,
-      title: 'ChoreShare Invite',
+      message: `Join our apartment "${apartment.name}" on Choreezo! Use invite code: ${apartment.inviteCode}`,
+      title: 'Choreezo Invite',
     });
   };
 
