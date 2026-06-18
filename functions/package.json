@@ -1,7 +1,7 @@
 {
-  "name": "choreshare-functions",
+  "name": "choreezo-functions",
   "version": "1.0.0",
-  "description": "Firebase Cloud Functions for ChoreShare",
+  "description": "Firebase Cloud Functions for Choreezo",
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",

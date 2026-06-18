@@ -40,7 +40,7 @@ export default function RootNavigator() {
   }, [apartmentId, setApartment, setMembers, setChores]);
 
   if (isLoading) {
-    return <LoadingSpinner fullScreen message="Loading ChoreShare..." />;
+    return <LoadingSpinner fullScreen message="Loading Choreezo..." />;
   }
 
   return (

@@ -32,7 +32,7 @@ interface ProfileState {
   clearProfile: () => Promise<void>;
 }
 
-const STORAGE_KEY = "choreshare_profile";
+const STORAGE_KEY = "choreezo_profile";
 
 interface PersistedProfile {
   userId: string | null;
