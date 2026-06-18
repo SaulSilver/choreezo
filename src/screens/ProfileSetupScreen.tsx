@@ -77,7 +77,7 @@ export default function ProfileSetupScreen() {
       >
         <View style={styles.hero}>
           <Text style={styles.emoji}>🏠</Text>
-          <Text style={styles.appName}>ChoreShare</Text>
+          <Text style={styles.appName}>Choreezo</Text>
           <Text style={styles.tagline}>
             Fairly distribute household chores among roommates
           </Text>

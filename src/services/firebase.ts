@@ -14,7 +14,7 @@ const firebaseConfig = {
 // Warn developers when Firebase config is missing or still on placeholder values
 if (__DEV__ && (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_"))) {
   console.warn(
-    "[ChoreShare] Firebase is not configured. Set the EXPO_PUBLIC_FIREBASE_* env vars (see src/services/firebase.ts) with your actual Firebase project credentials.",
+    "[Choreezo] Firebase is not configured. Set the EXPO_PUBLIC_FIREBASE_* env vars (see src/services/firebase.ts) with your actual Firebase project credentials.",
   );
 }
 

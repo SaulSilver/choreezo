@@ -6,7 +6,7 @@ import { upsertSignInUser, getUser } from './apartments';
 // Stable identifier returned by Apple on every sign-in for a given user.
 // Stored securely so we can re-validate the credential on subsequent launches
 // and recognize returning users (Apple only returns name/email on first auth).
-const APPLE_USER_KEY = 'choreshare_apple_user_id';
+const APPLE_USER_KEY = 'choreezo_apple_user_id';
 
 // Dev-only mock: when enabled, bypass the native Apple sign-in sheet and return
 // a deterministic credential. Lets contributors iterate on auth-adjacent flows
@@ -72,7 +72,7 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
     try {
       await upsertSignInUser(userId, { name, email, authProvider: 'apple' });
     } catch (error) {
-      console.warn('[ChoreShare] Mock Apple sign-in: failed to upsert user', error);
+      console.warn('[Choreezo] Mock Apple sign-in: failed to upsert user', error);
     }
     return { userId, name, email };
   }
@@ -109,7 +109,7 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
     // Don't fail the sign-in if the backend write hiccups — local profile is
     // still set, and the next apartment create/join (or settings change) will
     // re-attempt the user-doc write.
-    console.warn('[ChoreShare] Failed to persist Apple sign-in user', error);
+    console.warn('[Choreezo] Failed to persist Apple sign-in user', error);
   }
 
   // Returning users on a new device won't get name/email from Apple — fall
@@ -123,7 +123,7 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
         if (!email && existing.email) email = existing.email;
       }
     } catch (error) {
-      console.warn('[ChoreShare] Failed to load existing user record', error);
+      console.warn('[Choreezo] Failed to load existing user record', error);
     }
   }
 
@@ -138,7 +138,7 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
 export async function getCurrentAppleUserId(): Promise<string | null> {
   if (MOCK_APPLE_ENABLED) {
     try {
-      const stored = await SecureStore.getItemAsync(APPLE_USER_KEY);
+      const stored = await SecureStore.getItemAsync(APPLE_USER_KEY) ?? await SecureStore.getItemAsync(LEGACY_APPLE_USER_KEY);
       return stored ?? null;
     } catch {
       return null;
@@ -147,7 +147,7 @@ export async function getCurrentAppleUserId(): Promise<string | null> {
   if (Platform.OS !== 'ios') return null;
   let stored: string | null;
   try {
-    stored = await SecureStore.getItemAsync(APPLE_USER_KEY);
+    stored = await SecureStore.getItemAsync(APPLE_USER_KEY) ?? await SecureStore.getItemAsync(LEGACY_APPLE_USER_KEY);
   } catch {
     return null;
   }
