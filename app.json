@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ChoreShare",
-    "slug": "choreshare",
+    "name": "Choreezo",
+    "slug": "choreezo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,12 +13,12 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.choreshare.app",
+      "bundleIdentifier": "com.saulsilver.choreezo",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "ChoreShare does not use the camera.",
-        "NSPhotoLibraryUsageDescription": "ChoreShare does not access your photo library.",
-        "NSMicrophoneUsageDescription": "ChoreShare does not use the microphone."
+        "NSCameraUsageDescription": "Choreezo does not use the camera.",
+        "NSPhotoLibraryUsageDescription": "Choreezo does not access your photo library.",
+        "NSMicrophoneUsageDescription": "Choreezo does not use the microphone."
       }
     },
     "android": {
@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6366F1"
       },
-      "package": "com.choreshare.app"
+      "package": "com.choreezo.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -47,7 +47,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "648b92fd-3020-4327-a8bc-abc74a91f31d"
       }
     }
   }
