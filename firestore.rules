@@ -1,0 +1,77 @@
+# Not working - to be fixed
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    // True when the caller is authenticated as the given userId.
+    function isUser(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // True when the caller is a member of the given apartment.
+    function isMember(apartmentId) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.apartmentId == apartmentId;
+    }
+
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      // A user can only read their own document.
+      allow read: if isUser(userId);
+
+      // On creation the caller must own the document and supply both timestamps.
+      allow create: if isUser(userId)
+
+      // On update the caller must own the document, must not change createdAt,
+      // and must refresh updatedAt.
+      allow update: if isUser(userId)
+
+      // A user can delete their own document (account deletion).
+      allow delete: if isUser(userId);
+    }
+
+    // ── Apartments ────────────────────────────────────────────────────────────
+
+    match /apartments/{apartmentId} {
+      // Any member of the apartment may read it.
+      allow read: if isMember(apartmentId);
+
+      // Any member may update, but createdAt is immutable and updatedAt must be
+      // refreshed.
+      allow update: if isMember(apartmentId)
+
+      // Only the apartment creator may delete it.
+      allow delete: if request.auth != null
+        && resource.data.createdBy == request.auth.uid;
+
+      // ── Assignments (subcollection) ────────────────────────────────────────
+
+      match /assignments/{assignmentId} {
+        allow read: if isMember(apartmentId);
+
+        allow create: if isMember(apartmentId)
+
+        allow update: if isMember(apartmentId)
+
+        allow delete: if isMember(apartmentId);
+      }
+
+      // ── Chores (subcollection) ─────────────────────────────────────────────
+
+      match /chores/{choreId} {
+        allow read: if isMember(apartmentId);
+
+        allow create: if isMember(apartmentId)
+
+        allow update: if isMember(apartmentId)
+
+        allow delete: if isMember(apartmentId);
+      }
+    }
+  }
+}
