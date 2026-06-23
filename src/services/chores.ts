@@ -3,10 +3,10 @@ import {
   doc,
   setDoc,
   getDocs,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Chore } from '../models';
+import { buildCreateMetadata } from '../utils/timestamps';
 
 export const DEFAULT_CHORES: Omit<Chore, 'id'>[] = [
   { name: 'Lunch', icon: '🍽️' },
@@ -22,7 +22,7 @@ export async function initializeDefaultChores(apartmentId: string): Promise<Chor
   for (const chore of DEFAULT_CHORES) {
     const ref = doc(collection(db, 'apartments', apartmentId, 'chores'));
     const fullChore: Chore = { id: ref.id, ...chore };
-    await setDoc(ref, { ...fullChore, createdAt: serverTimestamp() });
+    await setDoc(ref, { ...fullChore, ...buildCreateMetadata() });
     chores.push(fullChore);
   }
   return chores;

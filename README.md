@@ -162,7 +162,7 @@ Android / web Sign in with Apple, cross-provider account linking, and the accoun
 
 ## Environment Variables
 
-No `.env` file is required. Firebase config is stored directly in `src/services/firebase.ts`. For production, consider using [expo-constants](https://docs.expo.dev/versions/latest/sdk/constants/) with EAS secrets.
+`.env.development` file is required for DEV environment and `.env.production` for PROD environment, use the template in `env.example`. For production, consider using [expo-constants](https://docs.expo.dev/versions/latest/sdk/constants/) with EAS secrets.
 
 ### Local development flags
 

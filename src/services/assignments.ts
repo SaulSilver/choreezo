@@ -6,12 +6,12 @@ import {
   query,
   where,
   writeBatch,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Assignment, User, Chore } from '../models';
 import { generateWeekAssignments } from '../utils/scheduling';
 import { getWeekDates } from '../utils/dateUtils';
+import { buildCreateMetadata, buildUpdateMetadata } from '../utils/timestamps';
 
 export async function getAssignmentsForWeek(
   apartmentId: string,
@@ -45,7 +45,7 @@ export async function generateAndSaveWeekAssignments(
   for (const assignment of newAssignments) {
     const ref = doc(collection(db, 'apartments', apartmentId, 'assignments'));
     const a: Assignment = { ...assignment, id: ref.id, apartmentId };
-    batch.set(ref, { ...a, createdAt: serverTimestamp() });
+    batch.set(ref, { ...a, ...buildCreateMetadata() });
     assignment.id = ref.id;
     assignment.apartmentId = apartmentId;
   }
@@ -59,5 +59,5 @@ export async function updateAssignment(
   updates: Partial<Assignment>
 ): Promise<void> {
   const ref = doc(db, 'apartments', apartmentId, 'assignments', assignmentId);
-  await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() });
+  await updateDoc(ref, { ...updates, ...buildUpdateMetadata() });
 }

@@ -48,6 +48,7 @@ export default function ApartmentScreen() {
       await setApartmentId(apartment.id);
     } catch (err: unknown) {
       const error = err as { message?: string };
+      console.error('Failed to create apartment:', error.message);
       Alert.alert('Error', error.message ?? 'Failed to create apartment');
     } finally {
       setIsLoading(false);

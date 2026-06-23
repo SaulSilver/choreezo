@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { buildCreateMetadata } from '../../src/utils/timestamps';
 
 admin.initializeApp();
 
@@ -131,7 +132,7 @@ export const weeklyScheduler = functions.pubsub
           .doc(apartment.id)
           .collection('assignments')
           .doc();
-        batch.set(ref, { ...a, id: ref.id, apartmentId: apartment.id, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+        batch.set(ref, { ...a, id: ref.id, apartmentId: apartment.id, ...buildCreateMetadata() });
       }
       await batch.commit();
       console.log(`Generated ${newAssignments.length} assignments for apartment ${apartment.id}`);

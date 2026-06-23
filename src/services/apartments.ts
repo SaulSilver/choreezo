@@ -7,14 +7,14 @@ import {
   query,
   where,
   getDocs,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Apartment, User } from '../models';
 import { generateInviteCode } from '../utils/inviteCode';
+import { buildCreateMetadata, buildUpdateMetadata } from '../utils/timestamps';
 
 export async function createOrUpdateUser(user: Omit<User, 'expoPushToken'>): Promise<void> {
-  await setDoc(doc(db, 'users', user.id), user, { merge: true });
+  await setDoc(doc(db, 'users', user.id), { ...user, ...buildUpdateMetadata() }, { merge: true });
 }
 
 export async function upsertSignInUser(
@@ -28,7 +28,14 @@ export async function upsertSignInUser(
   if (fields.name && fields.name.trim().length > 0) data.name = fields.name.trim();
   if (fields.email && fields.email.trim().length > 0) data.email = fields.email.trim();
   if (fields.authProvider) data.authProvider = fields.authProvider;
-  await setDoc(doc(db, 'users', id), data, { merge: true });
+
+  const userRef = doc(db, 'users', id);
+  const existing = await getDoc(userRef);
+  if (existing.exists()) {
+    await setDoc(userRef, { ...data, ...buildUpdateMetadata() }, { merge: true });
+  } else {
+    await setDoc(userRef, { ...data, ...buildCreateMetadata() }, { merge: true });
+  }
 }
 
 export async function getUser(
@@ -53,8 +60,8 @@ export async function createApartment(
     timezone,
     createdBy,
   };
-  await setDoc(ref, { ...apartment, createdAt: serverTimestamp() });
-  await setDoc(doc(db, 'users', createdBy), { apartmentId: ref.id }, { merge: true });
+  await setDoc(ref, { ...apartment, ...buildCreateMetadata() });
+  await setDoc(doc(db, 'users', createdBy), { apartmentId: ref.id, ...buildUpdateMetadata() }, { merge: true });
   return apartment;
 }
 
@@ -72,7 +79,7 @@ export async function joinApartment(
   const apartmentDoc = snap.docs[0];
   const apartment = { id: apartmentDoc.id, ...apartmentDoc.data() } as Apartment;
 
-  await setDoc(doc(db, 'users', userId), { apartmentId: apartment.id }, { merge: true });
+  await setDoc(doc(db, 'users', userId), { apartmentId: apartment.id, ...buildUpdateMetadata() }, { merge: true });
   return apartment;
 }
 
@@ -92,7 +99,7 @@ export async function getApartmentMembers(apartmentId: string): Promise<User[]> 
 }
 
 export async function leaveApartment(userId: string): Promise<void> {
-  await setDoc(doc(db, 'users', userId), { apartmentId: null }, { merge: true });
+  await setDoc(doc(db, 'users', userId), { apartmentId: null, ...buildUpdateMetadata() }, { merge: true });
 }
 
 export async function deleteApartment(apartmentId: string, userId: string): Promise<void> {
@@ -107,7 +114,7 @@ export async function deleteApartment(apartmentId: string, userId: string): Prom
   const members = await getApartmentMembers(apartmentId);
   await Promise.all(
     members.map((member) =>
-      setDoc(doc(db, 'users', member.id), { apartmentId: null }, { merge: true })
+      setDoc(doc(db, 'users', member.id), { apartmentId: null, ...buildUpdateMetadata() }, { merge: true })
     )
   );
 
