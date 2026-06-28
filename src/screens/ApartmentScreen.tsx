@@ -11,14 +11,15 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { createApartment, joinApartment, getApartmentMembers, createOrUpdateUser } from '../services/apartments';
+import { createApartment, joinApartment, getApartmentMembers, createOrUpdateUser, createDemoApartment } from '../services/apartments';
 import { initializeDefaultChores, getChores } from '../services/chores';
+import { seedDemoAssignments } from '../services/assignments';
 import { useProfileStore } from '../store/profileStore';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useSettingsStore } from '../store/settingsStore';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-type Tab = 'create' | 'join';
+type Tab = 'create' | 'join' | 'demo';
 
 export default function ApartmentScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('create');
@@ -79,11 +80,32 @@ export default function ApartmentScreen() {
     }
   };
 
+  const handleDemoSetup = async () => {
+    if (!userId || !name) return;
+    try {
+      setIsLoading(true);
+      await createOrUpdateUser({ id: userId, name, apartmentId: null, notifyDaily, notifyWeekly });
+      const apartment = await createDemoApartment({ id: userId, name, notifyDaily, notifyWeekly });
+      const chores = await initializeDefaultChores(apartment.id);
+      const members = await getApartmentMembers(apartment.id);
+      await seedDemoAssignments(apartment.id, members, chores);
+      setApartment(apartment);
+      setChores(chores);
+      setMembers(members);
+      await setApartmentId(apartment.id);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      Alert.alert('Error', error.message ?? 'Failed to set up demo apartment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <LoadingSpinner
         fullScreen
-        message={activeTab === 'create' ? 'Creating apartment...' : 'Joining apartment...'}
+        message={activeTab === 'create' ? 'Creating apartment...' : activeTab === 'join' ? 'Joining apartment...' : 'Preparing demo apartment...'}
       />
     );
   }
@@ -104,14 +126,14 @@ export default function ApartmentScreen() {
           </View>
 
           <View style={styles.tabs}>
-            {(['create', 'join'] as Tab[]).map((tab) => (
+            {(['create', 'join', 'demo'] as Tab[]).map((tab) => (
               <TouchableOpacity
                 key={tab}
                 style={[styles.tab, activeTab === tab && styles.activeTab]}
                 onPress={() => setActiveTab(tab)}
               >
                 <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                  {tab === 'create' ? 'Create New' : 'Join Existing'}
+                  {tab === 'create' ? 'Create New' : tab === 'join' ? 'Join Existing' : 'Try Demo'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -135,7 +157,7 @@ export default function ApartmentScreen() {
                   <Text style={styles.buttonText}>Create Apartment</Text>
                 </TouchableOpacity>
               </>
-            ) : (
+            ) : activeTab === 'join' ? (
               <>
                 <Text style={styles.label}>Invite Code</Text>
                 <TextInput
@@ -151,6 +173,17 @@ export default function ApartmentScreen() {
                 />
                 <TouchableOpacity style={styles.button} onPress={handleJoin}>
                   <Text style={styles.buttonText}>Join Apartment</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.demoTitle}>Demo apartment onboarding</Text>
+                <Text style={styles.demoText}>
+                  Explore Choreezo with 3 fictional demo roommates and a realistic chore rotation.
+                  Demo members are clearly marked and can be removed at any time from Settings.
+                </Text>
+                <TouchableOpacity style={styles.button} onPress={handleDemoSetup}>
+                  <Text style={styles.buttonText}>Start Demo Setup</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -192,6 +225,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   codeInput: { textAlign: 'center', letterSpacing: 8, fontSize: 22, fontWeight: '700' },
+  demoTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 8 },
+  demoText: { fontSize: 14, color: '#6B7280', lineHeight: 20, marginBottom: 20 },
   button: {
     backgroundColor: '#6366F1',
     borderRadius: 12,

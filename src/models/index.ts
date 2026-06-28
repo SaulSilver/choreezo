@@ -6,6 +6,7 @@ export interface User {
   updatedAt?: Timestamp;
   name: string;
   apartmentId: string | null;
+  isDemoUser?: boolean;
   expoPushToken?: string;
   notifyDaily: boolean;
   notifyWeekly: boolean;
@@ -16,6 +17,7 @@ export interface Apartment {
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   name: string;
+  isDemo?: boolean;
   inviteCode: string;
   timezone: string;
   createdBy: string;

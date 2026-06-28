@@ -7,6 +7,7 @@ import {
   query,
   where,
   getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Apartment, User } from '../models';
@@ -49,19 +50,53 @@ export async function getUser(
 export async function createApartment(
   name: string,
   createdBy: string,
-  timezone: string = 'UTC'
+  timezone: string = 'UTC',
+  isDemo: boolean = false
 ): Promise<Apartment> {
   const inviteCode = generateInviteCode();
   const ref = doc(collection(db, 'apartments'));
   const apartment: Apartment = {
     id: ref.id,
     name,
+    isDemo,
     inviteCode,
     timezone,
     createdBy,
   };
   await setDoc(ref, { ...apartment, ...buildCreateMetadata() });
   await setDoc(doc(db, 'users', createdBy), { apartmentId: ref.id, ...buildUpdateMetadata() }, { merge: true });
+  return apartment;
+}
+
+export async function createDemoApartment(
+  owner: Pick<User, 'id' | 'name' | 'notifyDaily' | 'notifyWeekly'>
+): Promise<Apartment> {
+  const demoMemberNames = ['Sam', 'Riley', 'Taylor'] as const;
+  const apartment = await createApartment('Demo Apartment', owner.id, 'UTC', true);
+
+  await createOrUpdateUser({
+    id: owner.id,
+    name: owner.name,
+    apartmentId: apartment.id,
+    notifyDaily: owner.notifyDaily,
+    notifyWeekly: owner.notifyWeekly,
+  });
+
+  await Promise.all(
+    demoMemberNames.map((memberName, index) => {
+      const memberId = `${apartment.id}-demo-${index + 1}`;
+      const member: User = {
+        id: memberId,
+        name: memberName,
+        apartmentId: apartment.id,
+        isDemoUser: true,
+        notifyDaily: false,
+        notifyWeekly: false,
+      };
+      return setDoc(doc(db, 'users', memberId), { ...member, ...buildCreateMetadata() });
+    })
+  );
+
   return apartment;
 }
 
@@ -120,6 +155,45 @@ export async function deleteApartment(apartmentId: string, userId: string): Prom
 
   // Delete the apartment document
   await deleteDoc(doc(db, 'apartments', apartmentId));
+}
+
+export async function clearDemoApartment(apartmentId: string, userId: string): Promise<void> {
+  if (!apartmentId) throw new Error('Apartment ID is required');
+  if (!userId) throw new Error('User ID is required');
+
+  const apartment = await getApartment(apartmentId);
+  if (!apartment) throw new Error('Apartment not found');
+  if (!apartment.isDemo) throw new Error('Only demo apartments can be cleared with this flow');
+  if (apartment.createdBy !== userId) throw new Error('Only the demo owner can clear this apartment');
+
+  const [members, assignmentsSnap, choresSnap] = await Promise.all([
+    getApartmentMembers(apartmentId),
+    getDocs(collection(db, 'apartments', apartmentId, 'assignments')),
+    getDocs(collection(db, 'apartments', apartmentId, 'chores')),
+  ]);
+
+  const batch = writeBatch(db);
+  assignmentsSnap.docs.forEach((assignmentDoc) => batch.delete(assignmentDoc.ref));
+  choresSnap.docs.forEach((choreDoc) => batch.delete(choreDoc.ref));
+
+  const ownerInMembers = members.some((m) => m.id === userId);
+  members.forEach((member) => {
+    if (member.isDemoUser) {
+      batch.delete(doc(db, 'users', member.id));
+    } else {
+      batch.set(
+        doc(db, 'users', member.id),
+        { apartmentId: null, ...buildUpdateMetadata() },
+        { merge: true }
+      );
+    }
+  });
+  if (!ownerInMembers) {
+    batch.set(doc(db, 'users', userId), { apartmentId: null, ...buildUpdateMetadata() }, { merge: true });
+  }
+
+  batch.delete(doc(db, 'apartments', apartmentId));
+  await batch.commit();
 }
 
 export async function deleteAccount(userId: string): Promise<void> {

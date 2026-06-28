@@ -117,7 +117,7 @@ export default function EditAssignmentScreen() {
             >
               <UserAvatar name={member.name} size={36} />
               <Text style={styles.userName}>
-                {member.name}{member.id === userId ? ' (You)' : ''}
+                {member.name}{member.id === userId ? ' (You)' : ''}{member.isDemoUser ? ' (Demo)' : ''}
               </Text>
               {isSelected && <Text style={styles.checkmark}>✓</Text>}
             </TouchableOpacity>
