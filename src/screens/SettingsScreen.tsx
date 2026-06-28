@@ -13,7 +13,7 @@ import {
 import { useProfileStore } from '../store/profileStore';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { leaveApartment, deleteAccount, deleteApartment } from '../services/apartments';
+import { leaveApartment, deleteAccount, deleteApartment, clearDemoApartment } from '../services/apartments';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UserAvatar from '../components/UserAvatar';
 
@@ -25,6 +25,38 @@ export default function SettingsScreen() {
   const [areMembersExpanded, setAreMembersExpanded] = useState(false);
 
   const isAdmin = !!(apartment && userId && apartment.createdBy === userId);
+  const isDemoApartment = apartment?.isDemo === true;
+
+  const handleClearDemo = () => {
+    if (!userId || !apartment) return;
+    Alert.alert(
+      'Clear Demo Setup',
+      'This removes all demo roommates and demo chore assignments, then returns you to create your real apartment.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear Demo',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await clearDemoApartment(apartment.id, userId);
+              setApartment(null);
+              setMembers([]);
+              setChores([]);
+              await setApartmentId(null);
+              Alert.alert('Demo cleared', 'Now create your real apartment and invite your roommates.');
+            } catch (err: unknown) {
+              const error = err as { message?: string };
+              Alert.alert('Error', error.message ?? 'Failed to clear demo setup');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleLeaveApartment = async () => {
     if (!userId) return;
@@ -165,6 +197,17 @@ export default function SettingsScreen() {
 
   const handleShareInviteCode = async () => {
     if (!apartment) return;
+    if (isDemoApartment) {
+      Alert.alert(
+        'Demo Mode Active',
+        'Please clear demo setup before inviting real roommates.',
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Clear demo', style: 'destructive', onPress: handleClearDemo },
+        ]
+      );
+      return;
+    }
     await Share.share({
       message: `Join our apartment "${apartment.name}" on Choreezo! Use invite code: ${apartment.inviteCode}`,
       title: 'Choreezo Invite',
@@ -232,6 +275,7 @@ export default function SettingsScreen() {
                           <Text style={styles.memberName}>
                             {memberName}
                             {member.id === userId ? ' (You)' : ''}
+                            {member.isDemoUser ? ' (Demo)' : ''}
                           </Text>
                         </View>
                       );
@@ -277,9 +321,15 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             )}
             {apartment && isAdmin && (
-              <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteApartment}>
-                <Text style={styles.dangerButtonText}>Delete Apartment</Text>
-              </TouchableOpacity>
+              isDemoApartment ? (
+                <TouchableOpacity style={styles.dangerButton} onPress={handleClearDemo}>
+                  <Text style={styles.dangerButtonText}>Clear Demo Setup</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteApartment}>
+                  <Text style={styles.dangerButtonText}>Delete Apartment</Text>
+                </TouchableOpacity>
+              )
             )}
             <TouchableOpacity style={styles.dangerButton} onPress={handleSignOut}>
               <Text style={styles.dangerButtonText}>Sign Out</Text>

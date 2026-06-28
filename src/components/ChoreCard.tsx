@@ -19,6 +19,7 @@ export default function ChoreCard({
   onPress,
 }: Props) {
   const isUnassigned = !assignedUser;
+  const demoSuffix = assignedUser?.isDemoUser ? ' (Demo)' : '';
   return (
     <TouchableOpacity
       style={[
@@ -43,7 +44,7 @@ export default function ChoreCard({
           <>
             <UserAvatar name={assignedUser.name} size={32} />
             <Text style={styles.userName} numberOfLines={1}>
-              {isCurrentUser ? 'You' : assignedUser.name.split(' ')[0]}
+              {isCurrentUser ? `You${demoSuffix}` : `${assignedUser.name.split(' ')[0]}${demoSuffix}`}
             </Text>
           </>
         ) : (
