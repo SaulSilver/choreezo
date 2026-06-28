@@ -4,7 +4,7 @@ A mobile app for fairly distributing household chores among roommates. Built wit
 
 ## Copilot agent guidance
 
-Repository-level Copilot workflow and efficiency rules are defined in `AGENTS.md`.
+Repository-level Copilot workflow and efficiency rules are defined in [AGENTS.md](AGENTS.md).
 
 ## Features
 
