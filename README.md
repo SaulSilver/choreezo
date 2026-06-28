@@ -2,6 +2,10 @@
 
 A mobile app for fairly distributing household chores among roommates. Built with React Native (Expo) and TypeScript.
 
+## Copilot agent guidance
+
+Repository-level Copilot workflow and efficiency rules are defined in [AGENTS.md](AGENTS.md).
+
 ## Features
 
 - **Profile Setup** – Sign in with Apple on iOS, or enter your name once and a local UUID is generated for you
