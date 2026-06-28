@@ -36,7 +36,7 @@ roommate,chores,household,apartment,weekly,schedule,reminders,shared,cleaning,pl
 
 ## Support URL
 
-Replace with your live support page URL.
+saulsilver.github.io/choreezo/support
 
 ## What's New (Version 1.0.0)
 
