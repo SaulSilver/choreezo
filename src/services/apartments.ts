@@ -175,9 +175,24 @@ export async function clearDemoApartment(apartmentId: string, userId: string): P
   const batch = writeBatch(db);
   assignmentsSnap.docs.forEach((assignmentDoc) => batch.delete(assignmentDoc.ref));
   choresSnap.docs.forEach((choreDoc) => batch.delete(choreDoc.ref));
-  members.filter((member) => member.isDemoUser).forEach((member) => batch.delete(doc(db, 'users', member.id)));
+
+  const ownerInMembers = members.some((m) => m.id === userId);
+  members.forEach((member) => {
+    if (member.isDemoUser) {
+      batch.delete(doc(db, 'users', member.id));
+    } else {
+      batch.set(
+        doc(db, 'users', member.id),
+        { apartmentId: null, ...buildUpdateMetadata() },
+        { merge: true }
+      );
+    }
+  });
+  if (!ownerInMembers) {
+    batch.set(doc(db, 'users', userId), { apartmentId: null, ...buildUpdateMetadata() }, { merge: true });
+  }
+
   batch.delete(doc(db, 'apartments', apartmentId));
-  batch.set(doc(db, 'users', userId), { apartmentId: null, ...buildUpdateMetadata() }, { merge: true });
   await batch.commit();
 }
 
