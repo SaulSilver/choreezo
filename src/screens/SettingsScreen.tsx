@@ -22,6 +22,7 @@ export default function SettingsScreen() {
   const { apartment, setApartment, setMembers, setChores, members } = useApartmentStore();
   const { notifyDaily, notifyWeekly, setNotifyDaily, setNotifyWeekly } = useSettingsStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [areMembersExpanded, setAreMembersExpanded] = useState(false);
 
   const isAdmin = !!(apartment && userId && apartment.createdBy === userId);
 
@@ -199,10 +200,45 @@ export default function SettingsScreen() {
                 </View>
               </TouchableOpacity>
               <View style={styles.divider} />
-              <View style={styles.row}>
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => setAreMembersExpanded((expanded) => !expanded)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: areMembersExpanded }}
+                accessibilityLabel={areMembersExpanded ? 'Hide apartment members' : 'Show apartment members'}
+              >
                 <Text style={styles.rowLabel}>Members</Text>
-                <Text style={styles.rowValue}>{members.length}</Text>
-              </View>
+                <View style={styles.rowValueGroup}>
+                  <Text style={styles.rowValue}>{members.length}</Text>
+                  <Text style={styles.disclosureIcon}>{areMembersExpanded ? '▴' : '▾'}</Text>
+                </View>
+              </TouchableOpacity>
+              {areMembersExpanded && (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.membersList}>
+                    {members.map((member, index) => {
+                      const memberName = member.name?.trim() || `Member ${index + 1}`;
+                      const memberKey = member.id || `member-${index}`;
+
+                      return (
+                        <View
+                          key={memberKey}
+                          style={styles.memberRow}
+                          accessible
+                          accessibilityLabel={`${memberName}${member.id === userId ? ', you' : ''}`}
+                        >
+                          <UserAvatar name={memberName} size={32} />
+                          <Text style={styles.memberName}>
+                            {memberName}
+                            {member.id === userId ? ' (You)' : ''}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
             </View>
           </View>
         )}
@@ -269,10 +305,15 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
   rowLabel: { fontSize: 16, color: '#1F2937' },
   rowValue: { fontSize: 16, color: '#6B7280' },
+  rowValueGroup: { flexDirection: 'row', alignItems: 'center' },
+  disclosureIcon: { fontSize: 14, color: '#9CA3AF', marginLeft: 8 },
   divider: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 16 },
   inviteCode: { flexDirection: 'row', alignItems: 'center' },
   inviteCodeText: { fontSize: 18, fontWeight: '800', color: '#6366F1', letterSpacing: 4, marginRight: 8 },
   shareIcon: { fontSize: 16 },
+  membersList: { paddingHorizontal: 16, paddingVertical: 8 },
+  memberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+  memberName: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginLeft: 12 },
   dangerButton: { backgroundColor: '#FEF2F2', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#FECACA' },
   dangerButtonText: { color: '#EF4444', fontSize: 16, fontWeight: '600' },
 });
