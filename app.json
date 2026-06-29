@@ -18,7 +18,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Choreezo does not use the camera.",
         "NSPhotoLibraryUsageDescription": "Choreezo does not access your photo library.",
-        "NSMicrophoneUsageDescription": "Choreezo does not use the microphone."
+        "NSMicrophoneUsageDescription": "Choreezo does not use the microphone.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -47,8 +48,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "648b92fd-3020-4327-a8bc-abc74a91f31d"
+        "projectId": "00d2670e-3af9-4937-9c4e-8c4a34bc4264"
       }
-    }
+    },
+    "owner": "saulsilver"
   }
 }

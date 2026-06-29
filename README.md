@@ -150,7 +150,7 @@ Choreezo supports **Sign in with Apple** on iOS via [`expo-apple-authentication`
 
 - `expo-apple-authentication` is listed in `package.json`.
 - `app.json` enables `ios.usesAppleSignIn: true` and registers the `expo-apple-authentication` config plugin. At prebuild / EAS build time Expo generates the `com.apple.developer.applesignin` entry in `ios/<App>/<App>.entitlements` automatically — there is no native `ios/` folder to edit by hand.
-- The Apple credential's stable user identifier is persisted via `expo-secure-store` (key `choreezo_apple_user_id`) so returning users are matched to their existing Firestore `users/{userId}` document. Apple's name + email are written on the first sign-in only (Apple does not return them on subsequent sign-ins). Older installs using the legacy `choreshare_apple_user_id` key are still supported.
+- The Apple credential's stable user identifier is persisted via `expo-secure-store` (key `choreezo_apple_user_id`) so returning users are matched to their existing Firestore `users/{userId}` document. Apple's name + email are written on the first sign-in only (Apple does not return them on subsequent sign-ins). 
 - Cancellation and errors are handled in `ProfileSetupScreen` — cancellation is silent, other errors surface a user-friendly alert.
 
 ### One-time maintainer setup
