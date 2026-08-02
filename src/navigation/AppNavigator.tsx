@@ -36,7 +36,7 @@ function TabNavigator() {
         name="WeeklySchedule"
         component={WeeklyScheduleScreen}
         options={{
-          title: 'This Week',
+          title: 'Current Week',
           tabBarLabel: 'Schedule',
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📅</Text>,
         }}

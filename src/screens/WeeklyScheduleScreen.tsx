@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -14,59 +14,146 @@ import { useProfileStore } from '../store/profileStore';
 import { useApartmentStore } from '../store/apartmentStore';
 import { useAssignmentStore } from '../store/assignmentStore';
 import { getAssignmentsForWeek, generateAndSaveWeekAssignments } from '../services/assignments';
-import { getCurrentWeekDates, getWeekNumber, formatDayName, formatDayNumber, formatDate, isTodayDate } from '../utils/dateUtils';
+import {
+  getWeekDates,
+  getWeekNumber,
+  getWeekNumberWithOffset,
+  formatDayName,
+  formatDayNumber,
+  formatDate,
+  isTodayDate,
+} from '../utils/dateUtils';
 import ChoreCard from '../components/ChoreCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 
 type NavProp = StackNavigationProp<AppStackParamList, 'EditAssignment'>;
+const MIN_WEEK_OFFSET = -1;
+const MAX_WEEK_OFFSET = 1;
 
 export default function WeeklyScheduleScreen() {
   const navigation = useNavigation<NavProp>();
   const { userId } = useProfileStore();
   const { apartment, members, chores } = useApartmentStore();
-  const { assignments, setAssignments, isLoading, setLoading, setError } = useAssignmentStore();
+  const {
+    assignments,
+    assignmentsByWeek,
+    currentWeek,
+    setCurrentWeek,
+    setWeekAssignments,
+    isLoading,
+    setLoading,
+    setError,
+  } = useAssignmentStore();
 
-  const weekDates = getCurrentWeekDates();
+  const currentWeekNumber = getWeekNumber();
+  const currentWeekDates = useMemo(() => getWeekDates(currentWeekNumber), [currentWeekNumber]);
   const today = new Date();
-  const todayIndex = weekDates.findIndex((d) => formatDate(d) === formatDate(today));
+  const todayIndex = currentWeekDates.findIndex((d) => formatDate(d) === formatDate(today));
+  const [weekOffset, setWeekOffset] = useState(0);
+  const visibleWeekNumber = getWeekNumberWithOffset(weekOffset);
+  const weekDates = useMemo(() => getWeekDates(visibleWeekNumber), [visibleWeekNumber]);
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex >= 0 ? todayIndex : 0);
   const [refreshing, setRefreshing] = useState(false);
+  const canGoPrevious = weekOffset > MIN_WEEK_OFFSET;
+  const canGoNext = weekOffset < MAX_WEEK_OFFSET;
 
-  const loadAssignments = useCallback(async () => {
+  const moveToWeekOffset = useCallback((targetOffset: number) => {
+    const clampedOffset = Math.max(MIN_WEEK_OFFSET, Math.min(MAX_WEEK_OFFSET, targetOffset));
+    if (clampedOffset === weekOffset) return;
+    setWeekOffset(clampedOffset);
+    if (clampedOffset === 0) {
+      setSelectedDayIndex(todayIndex >= 0 ? todayIndex : 0);
+      return;
+    }
+    setSelectedDayIndex(0);
+  }, [todayIndex, weekOffset]);
+
+  useLayoutEffect(() => {
+    const centerWeekLabel =
+      weekOffset === -1 ? 'Previous week' : weekOffset === 1 ? 'Next week' : 'Current week';
+
+    navigation.setOptions({
+      title: 'Current week',
+      headerTitle: () => (
+        <View style={styles.headerWeekNavigation}>
+          <TouchableOpacity
+            style={[styles.headerWeekButton, !canGoPrevious && styles.headerWeekButtonDisabled]}
+            onPress={() => moveToWeekOffset(weekOffset - 1)}
+            disabled={!canGoPrevious}
+          >
+            <Text style={[styles.headerWeekButtonText, !canGoPrevious && styles.headerWeekButtonTextDisabled]}>◀</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.headerWeekLabel}>{centerWeekLabel}</Text>
+
+          <TouchableOpacity
+            style={[styles.headerWeekButton, !canGoNext && styles.headerWeekButtonDisabled]}
+            onPress={() => moveToWeekOffset(weekOffset + 1)}
+            disabled={!canGoNext}
+          >
+            <Text style={[styles.headerWeekButtonText, !canGoNext && styles.headerWeekButtonTextDisabled]}>▶</Text>
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, weekOffset, canGoPrevious, canGoNext, moveToWeekOffset]);
+
+  const loadWeekAssignments = useCallback(async (weekNumber: number, showLoading: boolean) => {
     if (!apartment || chores.length === 0) return;
-    const weekNumber = getWeekNumber();
-    setLoading(true);
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
-      let existing = await getAssignmentsForWeek(apartment.id, weekNumber);
-      if (existing.length === 0) {
-        existing = await generateAndSaveWeekAssignments(
-          apartment.id, members, chores, weekNumber, []
-        );
+      const existing = await getAssignmentsForWeek(apartment.id, weekNumber);
+      if (existing.length > 0) {
+        setWeekAssignments(weekNumber, existing, chores);
+        setError(null);
+        return;
       }
-      setAssignments(existing);
+
+      const generated = await generateAndSaveWeekAssignments(
+        apartment.id,
+        members,
+        chores,
+        weekNumber,
+        existing
+      );
+      setWeekAssignments(weekNumber, generated, chores);
+      setError(null);
     } catch (e: unknown) {
       const err = e as { message?: string };
       setError(err.message ?? 'Failed to load assignments');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  }, [apartment, members, chores, setAssignments, setLoading, setError]);
+  }, [apartment, members, chores, setWeekAssignments, setLoading, setError]);
 
   useEffect(() => {
-    loadAssignments();
-  }, [loadAssignments]);
+    setCurrentWeek(visibleWeekNumber);
+    loadWeekAssignments(visibleWeekNumber, true);
+  }, [visibleWeekNumber, setCurrentWeek, loadWeekAssignments]);
 
   const onRefresh = useCallback(async () => {
+    if (!apartment || chores.length === 0) return;
     setRefreshing(true);
-    await loadAssignments();
+    const weekNumbers = [MIN_WEEK_OFFSET, 0, MAX_WEEK_OFFSET].map((offset) =>
+      getWeekNumberWithOffset(offset)
+    );
+    await Promise.all(weekNumbers.map((weekNumber) => loadWeekAssignments(weekNumber, false)));
     setRefreshing(false);
-  }, [loadAssignments]);
+  }, [apartment, chores, loadWeekAssignments]);
 
   const selectedDate = weekDates[selectedDayIndex];
   const selectedDateStr = selectedDate ? formatDate(selectedDate) : '';
-  const dayAssignments = assignments.filter((a) => a.date === selectedDateStr);
+  const visibleAssignments = assignmentsByWeek[currentWeek] ?? assignments;
+  const dayAssignments = useMemo(
+    () => visibleAssignments.filter((a) => a.date === selectedDateStr),
+    [visibleAssignments, selectedDateStr]
+  );
 
   if (isLoading && assignments.length === 0) {
     return <LoadingSpinner fullScreen message="Loading schedule..." />;
@@ -136,6 +223,37 @@ export default function WeeklyScheduleScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
+  headerWeekNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 8,
+  },
+  headerWeekButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+  },
+  headerWeekButtonDisabled: {
+    backgroundColor: '#F3F4F6',
+  },
+  headerWeekButtonText: {
+    color: '#4F46E5',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  headerWeekButtonTextDisabled: {
+    color: '#9CA3AF',
+  },
+  headerWeekLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
   daySelector: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
