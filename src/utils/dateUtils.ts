@@ -32,6 +32,17 @@ export function getCurrentWeekDates(): Date[] {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
+export function getWeekNumberWithOffset(offset: number, baseDate: Date = new Date()): number {
+  return getWeekNumber(addDays(baseDate, offset * 7));
+}
+
+export function formatWeekRange(weekNumber: number): string {
+  const weekDates = getWeekDates(weekNumber);
+  const start = weekDates[0];
+  const end = weekDates[6];
+  return `${format(start, 'EEE, MMM d')} - ${format(end, 'EEE, MMM d')}`;
+}
+
 export function formatDate(date: Date): string {
   return format(date, 'yyyy-MM-dd');
 }
