@@ -7,6 +7,7 @@ import { upsertSignInUser, getUser } from './apartments';
 // Stored securely so we can re-validate the credential on subsequent launches
 // and recognize returning users (Apple only returns name/email on first auth).
 const APPLE_USER_KEY = 'choreezo_apple_user_id';
+const LEGACY_APPLE_USER_KEY = 'apple_user_id';
 
 // Dev-only mock: when enabled, bypass the native Apple sign-in sheet and return
 // a deterministic credential. Lets contributors iterate on auth-adjacent flows
@@ -136,9 +137,22 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
  * or null if the user revoked access / the credential was never set.
  */
 export async function getCurrentAppleUserId(): Promise<string | null> {
+  const getStoredAppleUserId = async (): Promise<string | null> => {
+    const stored = await SecureStore.getItemAsync(APPLE_USER_KEY);
+    if (stored) return stored;
+    const legacyStored = await SecureStore.getItemAsync(LEGACY_APPLE_USER_KEY);
+    if (!legacyStored) return null;
+    try {
+      await SecureStore.setItemAsync(APPLE_USER_KEY, legacyStored);
+    } catch {
+      // ignore migration failure and keep using legacy value this launch
+    }
+    return legacyStored;
+  };
+
   if (MOCK_APPLE_ENABLED) {
     try {
-      const stored = await SecureStore.getItemAsync(APPLE_USER_KEY);
+      const stored = await getStoredAppleUserId();
       return stored ?? null;
     } catch {
       return null;
@@ -147,7 +161,7 @@ export async function getCurrentAppleUserId(): Promise<string | null> {
   if (Platform.OS !== 'ios') return null;
   let stored: string | null;
   try {
-    stored = await SecureStore.getItemAsync(APPLE_USER_KEY);
+    stored = await getStoredAppleUserId();
   } catch {
     return null;
   }
@@ -164,6 +178,7 @@ export async function getCurrentAppleUserId(): Promise<string | null> {
   // Credential was explicitly revoked — clear it so the user is prompted again.
   try {
     await SecureStore.deleteItemAsync(APPLE_USER_KEY);
+    await SecureStore.deleteItemAsync(LEGACY_APPLE_USER_KEY);
   } catch {
     // ignore
   }
@@ -173,6 +188,7 @@ export async function getCurrentAppleUserId(): Promise<string | null> {
 export async function clearAppleCredential(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(APPLE_USER_KEY);
+    await SecureStore.deleteItemAsync(LEGACY_APPLE_USER_KEY);
   } catch {
     // ignore
   }

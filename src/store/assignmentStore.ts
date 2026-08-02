@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { Assignment, Chore } from '../models';
+import { getWeekNumber } from '../utils/dateUtils';
 
-const CHORE_ORDER = ['Lunch', 'Dinner', 'Hoover', 'Mop', 'Dusting', 'Kitchen'];
+const CHORE_ORDER = ['Lunch', 'Dinner', 'Hoover', 'Mop', 'Dusting', 'Kitchen Cleaning'];
 
 const sortAssignmentsForWeek = (assignments: Assignment[], chores: Chore[]): Assignment[] => {
   const choreRankById = new Map<string, number>(
@@ -44,27 +45,22 @@ interface AssignmentState {
 export const useAssignmentStore = create<AssignmentState>((set) => ({
   assignments: [],
   assignmentsByWeek: {},
-  currentWeek: 0,
+  currentWeek: getWeekNumber(),
   isLoading: false,
   error: null,
   setAssignments: (assignments) =>
-    set((state) => {
-      if (state.currentWeek === 0) {
-        return { assignments };
-      }
-      return {
-        assignments,
-        assignmentsByWeek: {
-          ...state.assignmentsByWeek,
-          [state.currentWeek]: assignments,
-        },
-      };
-    }),
+    set((state) => ({
+      assignments,
+      assignmentsByWeek: {
+        ...state.assignmentsByWeek,
+        [getWeekNumber()]: assignments,
+      },
+    })),
   setWeekAssignments: (weekNumber, assignments, chores) =>
     set((state) => {
       const orderedAssignments = sortAssignmentsForWeek(assignments, chores);
       return {
-        assignments: state.currentWeek === weekNumber ? orderedAssignments : state.assignments,
+        assignments: weekNumber === getWeekNumber() ? orderedAssignments : state.assignments,
         assignmentsByWeek: {
           ...state.assignmentsByWeek,
           [weekNumber]: orderedAssignments,
@@ -93,10 +89,7 @@ export const useAssignmentStore = create<AssignmentState>((set) => ({
       };
     }),
   setCurrentWeek: (currentWeek) =>
-    set((state) => ({
-      currentWeek,
-      assignments: state.assignmentsByWeek[currentWeek] ?? [],
-    })),
+    set({ currentWeek }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
 }));
