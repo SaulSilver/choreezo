@@ -51,6 +51,12 @@
         "projectId": "00d2670e-3af9-4937-9c4e-8c4a34bc4264"
       }
     },
-    "owner": "saulsilver"
+    "owner": "saulsilver",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/00d2670e-3af9-4937-9c4e-8c4a34bc4264"
+    }
   }
 }
