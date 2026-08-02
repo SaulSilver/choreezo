@@ -138,7 +138,7 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
 export async function getCurrentAppleUserId(): Promise<string | null> {
   if (MOCK_APPLE_ENABLED) {
     try {
-      const stored = await SecureStore.getItemAsync(APPLE_USER_KEY) ?? await SecureStore.getItemAsync(LEGACY_APPLE_USER_KEY);
+      const stored = await SecureStore.getItemAsync(APPLE_USER_KEY);
       return stored ?? null;
     } catch {
       return null;
@@ -147,7 +147,7 @@ export async function getCurrentAppleUserId(): Promise<string | null> {
   if (Platform.OS !== 'ios') return null;
   let stored: string | null;
   try {
-    stored = await SecureStore.getItemAsync(APPLE_USER_KEY) ?? await SecureStore.getItemAsync(LEGACY_APPLE_USER_KEY);
+    stored = await SecureStore.getItemAsync(APPLE_USER_KEY);
   } catch {
     return null;
   }
