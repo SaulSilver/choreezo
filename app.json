@@ -4,10 +4,10 @@
     "slug": "choreezo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app_icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/app_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#6366F1"
     },
