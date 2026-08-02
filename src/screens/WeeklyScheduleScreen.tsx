@@ -108,7 +108,7 @@ export default function WeeklyScheduleScreen() {
     try {
       const existing = await getAssignmentsForWeek(apartment.id, weekNumber);
       if (existing.length > 0) {
-        setWeekAssignments(weekNumber, existing);
+        setWeekAssignments(weekNumber, existing, chores);
         setError(null);
         return;
       }
@@ -120,7 +120,7 @@ export default function WeeklyScheduleScreen() {
         weekNumber,
         existing
       );
-      setWeekAssignments(weekNumber, generated);
+      setWeekAssignments(weekNumber, generated, chores);
       setError(null);
     } catch (e: unknown) {
       const err = e as { message?: string };
@@ -150,7 +150,10 @@ export default function WeeklyScheduleScreen() {
   const selectedDate = weekDates[selectedDayIndex];
   const selectedDateStr = selectedDate ? formatDate(selectedDate) : '';
   const visibleAssignments = assignmentsByWeek[currentWeek] ?? assignments;
-  const dayAssignments = visibleAssignments.filter((a) => a.date === selectedDateStr);
+  const dayAssignments = useMemo(
+    () => visibleAssignments.filter((a) => a.date === selectedDateStr),
+    [visibleAssignments, selectedDateStr]
+  );
 
   if (isLoading && assignments.length === 0) {
     return <LoadingSpinner fullScreen message="Loading schedule..." />;
