@@ -28,6 +28,9 @@ on:
       - tsconfig.json
       - src/**
 
+permissions:
+  contents: read
+
 concurrency:
   group: validate-app-${{ github.ref }}
   cancel-in-progress: true

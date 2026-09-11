@@ -12,6 +12,9 @@ on:
     paths:
       - functions/**
 
+permissions:
+  contents: read
+
 concurrency:
   group: validate-functions-${{ github.ref }}
   cancel-in-progress: true
