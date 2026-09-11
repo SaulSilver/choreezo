@@ -17,6 +17,7 @@ Goal: reduce repetitive discovery, token usage, and tool churn while preserving 
 - **Navigation params/types:** `src/navigation/AppNavigator.tsx`
 - **Week/date logic:** `src/utils/dateUtils.ts`
 - **Server scheduling/notifications:** `functions/src/index.ts`
+- **Automation and workflow files:** `.github/workflows/*`, `.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`
 
 For most tasks, start from the closest file above plus one consumer file.  
 Avoid full-repo scans unless the request is explicitly cross-cutting.
@@ -35,6 +36,7 @@ Avoid full-repo scans unless the request is explicitly cross-cutting.
 
 - Prefer extending an existing service/store over creating a new one.
 - Keep Cloud Functions aligned with client data semantics (especially `weekNumber`, assignment shape, and unassigned `userId: null` flow).
+- Reserve future Go backend automation for `/backend` or `/api` once that service exists.
 
 ## High-value conventions to reuse
 
@@ -92,8 +94,32 @@ Before finishing, confirm:
    - App: `npx tsc --noEmit`
    - Functions: `cd functions && npm run build`
 
+## Copilot workflow contract
+
+### Ticket intake
+
+- Treat structured GitHub issue forms as the source of truth for:
+  - Scope
+  - Acceptance criteria
+  - Affected surface
+  - Release impact
+- Only take autonomous implementation work from issues explicitly labeled `copilot-ready`.
+- If acceptance criteria, scope, or rollout impact are unclear, stop, add or preserve `needs-human-input`, and ask for clarification instead of guessing.
+- Prefer responding with a plan when the issue spans multiple surfaces, includes backend architecture decisions, or lacks a narrow completion target.
+
+### Validation and delivery
+
+- For frontend or shared app changes, run `npx tsc --noEmit`.
+- For `functions/**` changes, run `cd functions && npm run build`.
+- Keep automation path-aware so app-only and functions-only changes do not run unrelated validation.
+- Do not automate backend build, deploy, or production release flow until the Go backend structure and deployment target are defined.
+
+### Future backend boundary
+
+- Until a Go backend exists, do not invent production backend directories or deployment steps.
+- When backend work begins, prefer `/backend` or `/api` as the service root and extend workflows with path-based validation rather than replacing the existing app/functions split.
+
 ## Exception policy
 
 If a request conflicts with these rules, follow the user request and note the intentional deviation in the final response.  
 Do not apply these rules rigidly when they would block correctness.
-
