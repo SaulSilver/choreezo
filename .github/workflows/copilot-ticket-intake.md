@@ -1,4 +1,6 @@
 ---
+name: Copilot ticket intake
+
 on:
   issues:
     types: [opened, edited, labeled]
@@ -10,6 +12,8 @@ permissions:
   copilot-requests: write
 
 network: defaults
+
+engine: copilot
 
 tools:
   github:
