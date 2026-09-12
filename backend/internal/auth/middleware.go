@@ -9,6 +9,10 @@ import (
 
 var ErrMissingBearerToken = errors.New("missing bearer token")
 
+type contextKey string
+
+const identityContextKey contextKey = "firebase_identity"
+
 type Identity struct {
 	UID string
 }
@@ -19,6 +23,14 @@ type FirebaseVerifier interface {
 
 type InternalVerifier interface {
 	VerifyRequest(ctx context.Context, r *http.Request) error
+}
+
+func IdentityFromContext(ctx context.Context) (*Identity, bool) {
+	identity, ok := ctx.Value(identityContextKey).(*Identity)
+	if !ok || identity == nil || identity.UID == "" {
+		return nil, false
+	}
+	return identity, true
 }
 
 func FirebaseMiddleware(verifier FirebaseVerifier, onError func(http.ResponseWriter, *http.Request, int, string, string)) func(http.Handler) http.Handler {
@@ -33,11 +45,13 @@ func FirebaseMiddleware(verifier FirebaseVerifier, onError func(http.ResponseWri
 				onError(w, r, http.StatusServiceUnavailable, "auth_unavailable", "firebase authentication is not configured")
 				return
 			}
-			if _, err := verifier.VerifyIDToken(r.Context(), token); err != nil {
+			identity, err := verifier.VerifyIDToken(r.Context(), token)
+			if err != nil {
 				onError(w, r, http.StatusUnauthorized, "unauthorized", "invalid authentication token")
 				return
 			}
-			next.ServeHTTP(w, r)
+			ctx := context.WithValue(r.Context(), identityContextKey, identity)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

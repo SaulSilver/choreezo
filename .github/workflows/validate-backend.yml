@@ -39,10 +39,10 @@ jobs:
         run: test -z "$(gofmt -l .)"
 
       - name: Run unit tests
-        run: go test ./...
+        run: npx --yes firebase-tools@14.16.0 emulators:exec --project demo-choreezo --only firestore "FIREBASE_PROJECT_ID=demo-choreezo go test ./..."
 
       - name: Run race tests
-        run: go test -race ./...
+        run: npx --yes firebase-tools@14.16.0 emulators:exec --project demo-choreezo --only firestore "FIREBASE_PROJECT_ID=demo-choreezo go test -race ./..."
 
       - name: Run vet
         run: go vet ./...

@@ -1,6 +1,6 @@
-# Backend Phase A foundation
+# Backend foundation and Phase B API
 
-This directory contains the Go backend foundation introduced in Phase A. It does **not** migrate any Expo client Firestore calls yet.
+This directory contains the Go backend foundation introduced in Phase A plus the authenticated Phase B domain API. It still does **not** migrate the Expo client in this ticket, but it now exposes the authenticated `/v1/*` endpoints that will become the trusted boundary for protected Firestore data.
 
 ## Migration matrix
 
@@ -80,7 +80,19 @@ curl http://localhost:18080/healthz
 
 ## OpenAPI
 
-The Phase A skeleton lives at `openapi/openapi.yaml` and currently documents `/healthz` plus placeholder protected path shapes for future `/v1/*` and `/internal/*` work.
+The OpenAPI document lives at `openapi/openapi.yaml` and documents the currently implemented `/healthz` and `/v1/*` routes.
+
+## Profile deletion semantics
+
+`DELETE /v1/me` intentionally preserves current application behavior instead of inventing extra destructive cleanup:
+
+- If the user **owns** an apartment (`apartments/{id}.createdBy == uid`), the API rejects deletion with `409 apartment_owner_conflict`.
+- If the user **belongs** to an apartment but does **not** own it, the API deletes only the user's Firestore document plus backend-owned device-registration subcollection data. Because apartment membership is derived from `users.where(apartmentId == apartmentId)`, that user disappears from membership queries, but the apartment document, invite mapping, chores, and assignments remain untouched.
+- The API does **not** delete the Firebase Authentication identity. It only deletes Firestore data owned by this backend.
+
+## Device registration
+
+Phase B stores per-device Expo tokens under `users/{uid}/devices/{deviceId}` and mirrors the most recent enabled token onto the legacy `users/{uid}.expoPushToken` field for compatibility with existing records and later migration phases.
 
 ## Docker
 
