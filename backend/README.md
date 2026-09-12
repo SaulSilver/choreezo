@@ -45,7 +45,7 @@ This directory contains the Go backend foundation introduced in Phase A. It does
 ### Run locally
 
 ```bash
-cd /home/runner/work/choreezo/choreezo/backend
+cd backend
 go run ./cmd/api
 ```
 
@@ -68,14 +68,14 @@ firebase emulators:start --only firestore
 In another terminal:
 
 ```bash
-cd /home/runner/work/choreezo/choreezo/backend
+cd backend
 FIREBASE_PROJECT_ID=demo-choreezo FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 go run ./cmd/api
 ```
 
 Use a non-conflicting port if your emulator is already on `8080`, for example:
 
 ```bash
-cd /home/runner/work/choreezo/choreezo/backend
+cd backend
 PORT=8081 FIREBASE_PROJECT_ID=demo-choreezo FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 go run ./cmd/api
 ```
 
@@ -88,6 +88,6 @@ The Phase A skeleton lives at `openapi/openapi.yaml` and currently documents `/h
 Build the backend image locally:
 
 ```bash
-cd /home/runner/work/choreezo/choreezo/backend
+cd backend
 docker build -t choreezo-backend .
 ```
