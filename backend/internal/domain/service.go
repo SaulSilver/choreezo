@@ -192,36 +192,70 @@ func (s *Service) UnregisterDevice(ctx context.Context, uid string, deviceID str
 
 	userRef := s.client.Collection(usersCollection).Doc(uid)
 	deviceRef := userRef.Collection(deviceRegistrationsCollection).Doc(deviceID)
-	if _, err := deviceRef.Delete(ctx); err != nil {
-		return translateError(err)
-	}
+	if err := s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		_, userExists, err := readUserRecordTx(tx, userRef)
+		if err != nil {
+			return err
+		}
 
-	remainingToken, err := s.firstRegisteredDeviceToken(ctx, uid)
-	if err != nil {
-		return err
-	}
+		refIter := tx.DocumentRefs(userRef.Collection(deviceRegistrationsCollection))
+		deviceRefs := make([]*firestore.DocumentRef, 0)
+		for {
+			ref, err := refIter.Next()
+			if errors.Is(err, iterator.Done) {
+				break
+			}
+			if err != nil {
+				return err
+			}
+			deviceRefs = append(deviceRefs, ref)
+		}
+		deviceSnaps, err := tx.GetAll(deviceRefs)
+		if err != nil {
+			return err
+		}
 
-	userSnap, err := userRef.Get(ctx)
-	if err != nil {
-		if grpcstatus.Code(err) == codes.NotFound {
+		var remainingToken *string
+		for _, snap := range deviceSnaps {
+			if snap == nil || !snap.Exists() {
+				continue
+			}
+			if snap.Ref.ID == deviceID {
+				if err := tx.Delete(snap.Ref); err != nil {
+					return err
+				}
+				continue
+			}
+			record := struct {
+				ExpoPushToken *string `firestore:"expoPushToken"`
+				Enabled       bool    `firestore:"enabled"`
+			}{}
+			if err := snap.DataTo(&record); err != nil {
+				return err
+			}
+			if remainingToken == nil && record.Enabled && record.ExpoPushToken != nil && strings.TrimSpace(*record.ExpoPushToken) != "" {
+				token := strings.TrimSpace(*record.ExpoPushToken)
+				remainingToken = &token
+			}
+		}
+
+		if !userExists {
 			return nil
 		}
+		if remainingToken == nil {
+			return tx.Update(userRef, []firestore.Update{
+				{Path: "expoPushToken", Value: firestore.Delete},
+				{Path: "updatedAt", Value: firestore.ServerTimestamp},
+			})
+		}
+		return tx.Set(userRef, map[string]any{
+			"expoPushToken": *remainingToken,
+			"updatedAt":     firestore.ServerTimestamp,
+		}, firestore.MergeAll)
+	}); err != nil {
 		return translateError(err)
 	}
-
-	batch := s.client.Batch()
-	if remainingToken == nil {
-		batch.Update(userRef, []firestore.Update{
-			{Path: "expoPushToken", Value: firestore.Delete},
-			{Path: "updatedAt", Value: firestore.ServerTimestamp},
-		})
-	} else {
-		updates := map[string]any{"expoPushToken": *remainingToken}
-		mergeMetadata(updates, !userSnap.Exists())
-		batch.Set(userRef, updates, firestore.MergeAll)
-	}
-	_, err = batch.Commit(ctx)
-	return translateError(err)
+	return nil
 }
 
 func (s *Service) CreateApartment(ctx context.Context, uid string, input CreateApartmentInput) (*Apartment, error) {
@@ -256,6 +290,31 @@ func (s *Service) JoinApartment(ctx context.Context, uid string, input JoinApart
 		if err != nil {
 			return err
 		}
+		if user.ApartmentID != nil {
+			membershipApartmentID := strings.TrimSpace(*user.ApartmentID)
+			if membershipApartmentID == "" {
+				user.ApartmentID = nil
+			} else if membershipApartmentID != "" {
+				mappingSnap, err := tx.Get(mappingRef)
+				if grpcstatus.Code(err) == codes.NotFound {
+					return NewError(http.StatusNotFound, "invalid_invite_code", "invalid invite code")
+				}
+				if err != nil {
+					return err
+				}
+				mapping := struct {
+					ApartmentID string `firestore:"apartmentId"`
+				}{}
+				if err := mappingSnap.DataTo(&mapping); err != nil {
+					return err
+				}
+				if membershipApartmentID == strings.TrimSpace(mapping.ApartmentID) {
+					apartmentID = membershipApartmentID
+					return nil
+				}
+				return NewError(http.StatusConflict, "apartment_membership_exists", "leave the current apartment before joining a new apartment")
+			}
+		}
 
 		mappingSnap, err := tx.Get(mappingRef)
 		if grpcstatus.Code(err) == codes.NotFound {
@@ -286,14 +345,6 @@ func (s *Service) JoinApartment(ctx context.Context, uid string, input JoinApart
 		apartment, err := apartmentFromSnapshot(apartmentSnap)
 		if err != nil {
 			return err
-		}
-
-		if user.ApartmentID != nil {
-			if *user.ApartmentID == apartment.ID {
-				apartmentID = apartment.ID
-				return nil
-			}
-			return NewError(http.StatusConflict, "apartment_membership_exists", "leave the current apartment before joining a new apartment")
 		}
 
 		update := map[string]any{"apartmentId": apartment.ID}
@@ -374,11 +425,40 @@ func (s *Service) LeaveApartment(ctx context.Context, uid string, apartmentID st
 	}
 
 	userRef := s.client.Collection(usersCollection).Doc(uid)
-	_, err = userRef.Set(ctx, map[string]any{
+	claimsIter := s.client.Collection(apartmentsCollection).Doc(apartmentID).Collection(assignmentsCollection).Where("userId", "==", uid).Documents(ctx)
+	defer claimsIter.Stop()
+	batch := s.client.Batch()
+	count := 0
+	for {
+		snap, err := claimsIter.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return translateError(err)
+		}
+		batch.Update(snap.Ref, []firestore.Update{
+			{Path: "userId", Value: nil},
+			{Path: "manuallyAssigned", Value: false},
+			{Path: "updatedAt", Value: firestore.ServerTimestamp},
+		})
+		count++
+		if count >= deleteBatchSize {
+			if _, err := batch.Commit(ctx); err != nil {
+				return translateError(err)
+			}
+			batch = s.client.Batch()
+			count = 0
+		}
+	}
+	batch.Set(userRef, map[string]any{
 		"apartmentId": nil,
 		"updatedAt":   firestore.ServerTimestamp,
 	}, firestore.MergeAll)
-	return translateError(err)
+	if _, err = batch.Commit(ctx); err != nil {
+		return translateError(err)
+	}
+	return nil
 }
 
 func (s *Service) DeleteApartment(ctx context.Context, uid string, apartmentID string) error {
