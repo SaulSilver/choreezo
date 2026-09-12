@@ -125,6 +125,37 @@ func TestProtectedEndpointReturnsPhaseAPlaceholderAfterAuth(t *testing.T) {
 	}
 }
 
+func TestInternalEndpointReturnsPhaseAPlaceholderAfterAuth(t *testing.T) {
+	handler := NewHandler(Dependencies{
+		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
+		InternalVerifier: staticInternalVerifier{},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/internal/jobs/weekly-seed", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected status %d, got %d", http.StatusServiceUnavailable, res.Code)
+	}
+
+	var body struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Error.Code != "not_implemented" {
+		t.Fatalf("expected error code not_implemented, got %q", body.Error.Code)
+	}
+	if body.Error.Message != "endpoint is not implemented in Phase A" {
+		t.Fatalf("unexpected error message %q", body.Error.Message)
+	}
+}
+
 func TestRequestIDIncludedInLogs(t *testing.T) {
 	var logs bytes.Buffer
 	handler := NewHandler(Dependencies{Logger: slog.New(slog.NewJSONHandler(&logs, nil))})
@@ -145,4 +176,10 @@ type staticFirebaseVerifier struct{}
 
 func (staticFirebaseVerifier) VerifyIDToken(_ context.Context, _ string) (*auth.Identity, error) {
 	return &auth.Identity{UID: "user-123"}, nil
+}
+
+type staticInternalVerifier struct{}
+
+func (staticInternalVerifier) VerifyRequest(_ context.Context, _ *http.Request) error {
+	return nil
 }
