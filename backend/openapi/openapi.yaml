@@ -34,7 +34,7 @@ paths:
         '401':
           description: Missing or invalid Firebase bearer token
         '503':
-          description: Firebase authentication wiring is not implemented in Phase A
+          description: Endpoint is intentionally scaffolded only in Phase A and is not implemented yet
   /internal/jobs/weekly-seed:
     post:
       summary: Placeholder internal job endpoint for future weekly seeding
@@ -45,7 +45,7 @@ paths:
         '401':
           description: Missing or invalid internal authentication
         '503':
-          description: Internal OIDC verification wiring is not implemented in Phase A
+          description: Endpoint is intentionally scaffolded only in Phase A and is not implemented yet
 components:
   securitySchemes:
     firebaseIdToken:

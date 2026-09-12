@@ -9,7 +9,9 @@ import (
 )
 
 type Dependencies struct {
-	Logger *slog.Logger
+	Logger           *slog.Logger
+	FirebaseVerifier auth.FirebaseVerifier
+	InternalVerifier auth.InternalVerifier
 }
 
 func NewHandler(deps Dependencies) http.Handler {
@@ -23,9 +25,9 @@ func NewHandler(deps Dependencies) http.Handler {
 		case r.Method == http.MethodGet && r.URL.Path == "/healthz":
 			writeHealth(w)
 		case strings.HasPrefix(r.URL.Path, "/v1/"):
-			firebaseProtectedHandler().ServeHTTP(w, r)
+			firebaseProtectedHandler(deps.FirebaseVerifier).ServeHTTP(w, r)
 		case strings.HasPrefix(r.URL.Path, "/internal/"):
-			internalProtectedHandler().ServeHTTP(w, r)
+			internalProtectedHandler(deps.InternalVerifier).ServeHTTP(w, r)
 		default:
 			WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
 		}
@@ -34,16 +36,16 @@ func NewHandler(deps Dependencies) http.Handler {
 	return withRecovery(logger, withRequestID(withLogging(logger, app)))
 }
 
-func firebaseProtectedHandler() http.Handler {
+func firebaseProtectedHandler(verifier auth.FirebaseVerifier) http.Handler {
 	notImplemented := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		WriteError(w, r, http.StatusServiceUnavailable, "not_implemented", "endpoint is not implemented in Phase A")
 	})
-	return auth.FirebaseMiddleware(nil, WriteError)(notImplemented)
+	return auth.FirebaseMiddleware(verifier, WriteError)(notImplemented)
 }
 
-func internalProtectedHandler() http.Handler {
+func internalProtectedHandler(verifier auth.InternalVerifier) http.Handler {
 	notImplemented := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		WriteError(w, r, http.StatusServiceUnavailable, "not_implemented", "endpoint is not implemented in Phase A")
 	})
-	return auth.InternalMiddleware(nil, WriteError)(notImplemented)
+	return auth.InternalMiddleware(verifier, WriteError)(notImplemented)
 }
