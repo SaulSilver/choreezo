@@ -3,7 +3,9 @@ package firestore
 import (
 	"context"
 
+	gofirestore "cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
+	firebaseauth "firebase.google.com/go/v4/auth"
 	"google.golang.org/api/option"
 
 	"github.com/SaulSilver/choreezo/backend/internal/config"
@@ -11,7 +13,8 @@ import (
 
 type Clients struct {
 	App       *firebase.App
-	Firestore interface{ Close() error }
+	Auth      *firebaseauth.Client
+	Firestore *gofirestore.Client
 }
 
 func New(ctx context.Context, cfg config.Config) (*Clients, error) {
@@ -25,6 +28,11 @@ func New(ctx context.Context, cfg config.Config) (*Clients, error) {
 		return nil, err
 	}
 
+	authClient, err := app.Auth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := app.Firestore(ctx)
 	if err != nil {
 		return nil, err
@@ -32,6 +40,7 @@ func New(ctx context.Context, cfg config.Config) (*Clients, error) {
 
 	return &Clients{
 		App:       app,
+		Auth:      authClient,
 		Firestore: client,
 	}, nil
 }

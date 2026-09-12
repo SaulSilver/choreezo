@@ -1,10 +1,12 @@
 openapi: 3.1.0
 info:
   title: Choreezo Backend API
-  version: 0.1.0
+  version: 0.2.0
   description: >-
-    Phase A foundation for the future Go backend that will become the trusted
-    boundary between the Expo client and Firestore.
+    Authenticated Phase B backend API for Choreezo. `/v1/*` endpoints require a
+    Firebase ID token verified by Firebase Admin and preserve the existing
+    Firestore document model while moving authorization and transactional logic
+    server-side.
 servers:
   - url: http://localhost:8080
 paths:
@@ -24,17 +26,422 @@ paths:
                   status:
                     type: string
                     example: ok
-  /v1/profile:
+  /v1/me:
     get:
-      summary: Placeholder protected endpoint for future profile retrieval
-      operationId: getProfile
+      summary: Get the authenticated profile
+      operationId: getMe
       security:
         - firebaseIdToken: []
       responses:
+        '200':
+          description: Authenticated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
         '401':
-          description: Missing or invalid Firebase bearer token
-        '503':
-          description: Endpoint is intentionally scaffolded only in Phase A and is not implemented yet
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    patch:
+      summary: Update the authenticated profile
+      operationId: patchMe
+      security:
+        - firebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    delete:
+      summary: Delete the authenticated profile Firestore data
+      description: >-
+        Deletes only Firestore user data and backend-owned device registrations.
+        It does not delete the Firebase Auth identity. If the authenticated user
+        owns an apartment, the operation is rejected to preserve existing
+        behavior.
+      operationId: deleteMe
+      security:
+        - firebaseIdToken: []
+      responses:
+        '204':
+          description: Profile deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/me/devices:
+    post:
+      summary: Register or refresh an Expo push token for one device
+      operationId: registerDevice
+      security:
+        - firebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+      responses:
+        '204':
+          description: Device registration stored
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /v1/me/devices/{deviceId}:
+    delete:
+      summary: Unregister one device token
+      operationId: unregisterDevice
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '204':
+          description: Device unregistered
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /v1/apartments:
+    post:
+      summary: Create an apartment with default chores
+      operationId: createApartment
+      security:
+        - firebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApartmentRequest'
+      responses:
+        '201':
+          description: Apartment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Apartment'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/apartments/join:
+    post:
+      summary: Join an apartment by invite code
+      operationId: joinApartment
+      security:
+        - firebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinApartmentRequest'
+      responses:
+        '200':
+          description: Apartment joined or already joined
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Apartment'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/InvalidInviteError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+  /v1/apartments/demo:
+    post:
+      summary: Create a demo apartment with demo members and seeded assignments
+      operationId: createDemoApartment
+      security:
+        - firebaseIdToken: []
+      responses:
+        '201':
+          description: Demo apartment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Apartment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/apartments/{apartmentId}:
+    get:
+      summary: Get one apartment for a current member
+      operationId: getApartment
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+      responses:
+        '200':
+          description: Apartment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Apartment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      summary: Delete a non-demo apartment owned by the authenticated member
+      operationId: deleteApartment
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+      responses:
+        '204':
+          description: Apartment deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/apartments/{apartmentId}/members:
+    get:
+      summary: List safe member DTOs for an apartment
+      operationId: listApartmentMembers
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+      responses:
+        '200':
+          description: Apartment members
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [members]
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /v1/apartments/{apartmentId}/leave:
+    post:
+      summary: Leave an apartment as a non-owner member
+      operationId: leaveApartment
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+      responses:
+        '204':
+          description: Apartment left
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/apartments/{apartmentId}/demo/clear:
+    post:
+      summary: Delete a demo apartment owned by the authenticated member
+      operationId: clearDemoApartment
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+      responses:
+        '204':
+          description: Demo apartment cleared
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/apartments/{apartmentId}/chores:
+    get:
+      summary: List chores for a member apartment
+      operationId: listChores
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+      responses:
+        '200':
+          description: Apartment chores
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [chores]
+                properties:
+                  chores:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Chore'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /v1/apartments/{apartmentId}/assignments:
+    get:
+      summary: Read one apartment week of assignments
+      operationId: listAssignmentsForWeek
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+        - $ref: '#/components/parameters/WeekNumber'
+      responses:
+        '200':
+          description: Apartment assignments for the requested week
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [assignments]
+                properties:
+                  assignments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Assignment'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /v1/apartments/{apartmentId}/assignments/ensure:
+    post:
+      summary: Idempotently ensure a full apartment week exists
+      operationId: ensureAssignmentsForWeek
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+        - $ref: '#/components/parameters/WeekNumber'
+      responses:
+        '200':
+          description: Existing plus newly created assignments for the requested week
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [assignments]
+                properties:
+                  assignments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Assignment'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/apartments/{apartmentId}/assignments/{assignmentId}/claim:
+    post:
+      summary: Claim one unassigned chore for the authenticated member
+      operationId: claimAssignment
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200':
+          description: Updated assignment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/apartments/{apartmentId}/assignments/{assignmentId}/unclaim:
+    post:
+      summary: Unclaim an assignment currently claimed by the authenticated member
+      operationId: unclaimAssignment
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200':
+          description: Updated assignment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /v1/apartments/{apartmentId}/assignments/{assignmentId}/assign:
+    post:
+      summary: Manually assign, reassign, or clear an assignment
+      operationId: setAssignmentUser
+      security:
+        - firebaseIdToken: []
+      parameters:
+        - $ref: '#/components/parameters/ApartmentId'
+        - $ref: '#/components/parameters/AssignmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetAssignmentUserRequest'
+      responses:
+        '200':
+          description: Updated assignment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
   /internal/jobs/weekly-seed:
     post:
       summary: Placeholder internal job endpoint for future weekly seeding
@@ -45,8 +452,223 @@ paths:
         '401':
           description: Missing or invalid internal authentication
         '503':
-          description: Endpoint is intentionally scaffolded only in Phase A and is not implemented yet
+          description: Endpoint remains intentionally unimplemented in Phase B
 components:
+  parameters:
+    ApartmentId:
+      name: apartmentId
+      in: path
+      required: true
+      schema:
+        type: string
+    AssignmentId:
+      name: assignmentId
+      in: path
+      required: true
+      schema:
+        type: string
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+    WeekNumber:
+      name: weekNumber
+      in: query
+      required: true
+      schema:
+        type: integer
+      description: ISO week-year × 100 + ISO week, for example `202601`.
+  responses:
+    BadRequestError:
+      description: Invalid request body, target, or query parameter
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    UnauthorizedError:
+      description: Missing or invalid Firebase bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ForbiddenError:
+      description: Authenticated user lacks permission for the operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFoundError:
+      description: Resource was not found or is not accessible to the member
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    InvalidInviteError:
+      description: Invite code is invalid without revealing apartment existence
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ConflictError:
+      description: Request conflicts with current domain state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    RateLimitError:
+      description: Too many invite attempts
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, requestId]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            requestId:
+              type: string
+    Profile:
+      type: object
+      required: [id, apartmentId, notifyDaily, notifyWeekly]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type:
+            - string
+            - 'null'
+        authProvider:
+          type:
+            - string
+            - 'null'
+        apartmentId:
+          type:
+            - string
+            - 'null'
+        isDemoUser:
+          type: boolean
+        notifyDaily:
+          type: boolean
+        notifyWeekly:
+          type: boolean
+    UpdateProfileRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        notifyDaily:
+          type: boolean
+        notifyWeekly:
+          type: boolean
+      additionalProperties: false
+    Apartment:
+      type: object
+      required: [id, name, inviteCode, timezone, createdBy]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        isDemo:
+          type: boolean
+        inviteCode:
+          type: string
+        timezone:
+          type: string
+        createdBy:
+          type: string
+    Member:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        isDemoUser:
+          type: boolean
+    Chore:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        icon:
+          type: string
+    Assignment:
+      type: object
+      required: [id, apartmentId, userId, choreId, date, weekNumber, manuallyAssigned]
+      properties:
+        id:
+          type: string
+        apartmentId:
+          type: string
+        userId:
+          type:
+            - string
+            - 'null'
+        choreId:
+          type: string
+        date:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        weekNumber:
+          type: integer
+        manuallyAssigned:
+          type: boolean
+    CreateApartmentRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        timezone:
+          type: string
+      additionalProperties: false
+    JoinApartmentRequest:
+      type: object
+      required: [inviteCode]
+      properties:
+        inviteCode:
+          type: string
+      additionalProperties: false
+    RegisterDeviceRequest:
+      type: object
+      required: [deviceId, expoPushToken]
+      properties:
+        deviceId:
+          type: string
+        expoPushToken:
+          type: string
+        platform:
+          type: string
+      additionalProperties: false
+    SetAssignmentUserRequest:
+      type: object
+      properties:
+        userId:
+          type:
+            - string
+            - 'null'
+      additionalProperties: false
   securitySchemes:
     firebaseIdToken:
       type: http

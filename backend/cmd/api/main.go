@@ -10,7 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	appauth "github.com/SaulSilver/choreezo/backend/internal/auth"
 	"github.com/SaulSilver/choreezo/backend/internal/config"
+	"github.com/SaulSilver/choreezo/backend/internal/domain"
 	appfirestore "github.com/SaulSilver/choreezo/backend/internal/firestore"
 	apihttp "github.com/SaulSilver/choreezo/backend/internal/http"
 )
@@ -45,7 +47,9 @@ func main() {
 	}()
 
 	handler := apihttp.NewHandler(apihttp.Dependencies{
-		Logger: logger,
+		Logger:           logger,
+		FirebaseVerifier: appauth.NewFirebaseTokenVerifier(clients.Auth),
+		DomainService:    domain.NewService(clients.Firestore, logger),
 	})
 
 	server := &http.Server{

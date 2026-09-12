@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/SaulSilver/choreezo/backend/internal/auth"
+	"github.com/SaulSilver/choreezo/backend/internal/domain"
 )
 
 func TestHealthz(t *testing.T) {
@@ -70,7 +71,7 @@ func TestNotFoundErrorEnvelope(t *testing.T) {
 
 func TestProtectedEndpointRequiresBearerToken(t *testing.T) {
 	handler := NewHandler(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
-	req := httptest.NewRequest(http.MethodGet, "/v1/profile", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
 	req.Header.Set("Authorization", "Bearer")
 	res := httptest.NewRecorder()
 
@@ -93,12 +94,37 @@ func TestProtectedEndpointRequiresBearerToken(t *testing.T) {
 	}
 }
 
-func TestProtectedEndpointReturnsPhaseAPlaceholderAfterAuth(t *testing.T) {
+func TestProtectedEndpointPassesVerifiedUID(t *testing.T) {
+	service := &fakeService{
+		getProfile: func(_ context.Context, uid string) (*domain.Profile, error) {
+			return &domain.Profile{ID: uid, Name: "Test User"}, nil
+		},
+	}
+	handler := NewHandler(Dependencies{
+		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
+		FirebaseVerifier: staticFirebaseVerifier{},
+		DomainService:    service,
+	})
+	req := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
+	req.Header.Set("Authorization", strings.Join([]string{"Bearer", "token"}, " "))
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, res.Code)
+	}
+	if service.lastUID != "user-123" {
+		t.Fatalf("expected service to receive verified uid, got %q", service.lastUID)
+	}
+}
+
+func TestProtectedEndpointReturnsServiceUnavailableWhenDomainMissing(t *testing.T) {
 	handler := NewHandler(Dependencies{
 		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
 		FirebaseVerifier: staticFirebaseVerifier{},
 	})
-	req := httptest.NewRequest(http.MethodGet, "/v1/profile", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
 	req.Header.Set("Authorization", strings.Join([]string{"Bearer", "token"}, " "))
 	res := httptest.NewRecorder()
 
@@ -110,18 +136,14 @@ func TestProtectedEndpointReturnsPhaseAPlaceholderAfterAuth(t *testing.T) {
 
 	var body struct {
 		Error struct {
-			Code    string `json:"code"`
-			Message string `json:"message"`
+			Code string `json:"code"`
 		} `json:"error"`
 	}
 	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if body.Error.Code != "not_implemented" {
-		t.Fatalf("expected error code not_implemented, got %q", body.Error.Code)
-	}
-	if body.Error.Message != "endpoint is not implemented in Phase A" {
-		t.Fatalf("unexpected error message %q", body.Error.Message)
+	if body.Error.Code != "service_unavailable" {
+		t.Fatalf("expected error code service_unavailable, got %q", body.Error.Code)
 	}
 }
 
@@ -160,7 +182,6 @@ func TestUnknownProtectedPathReturnsNotFound(t *testing.T) {
 	handler := NewHandler(Dependencies{
 		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
 		FirebaseVerifier: staticFirebaseVerifier{},
-		InternalVerifier: staticInternalVerifier{},
 	})
 	req := httptest.NewRequest(http.MethodGet, "/v1/unknown", nil)
 	req.Header.Set("Authorization", strings.Join([]string{"Bearer", "token"}, " "))
@@ -199,4 +220,63 @@ type staticInternalVerifier struct{}
 
 func (staticInternalVerifier) VerifyRequest(_ context.Context, _ *http.Request) error {
 	return nil
+}
+
+type fakeService struct {
+	lastUID    string
+	getProfile func(context.Context, string) (*domain.Profile, error)
+}
+
+func (f *fakeService) GetProfile(ctx context.Context, uid string) (*domain.Profile, error) {
+	f.lastUID = uid
+	if f.getProfile != nil {
+		return f.getProfile(ctx, uid)
+	}
+	return &domain.Profile{ID: uid}, nil
+}
+
+func (*fakeService) UpdateProfile(context.Context, string, domain.UpdateProfileInput) (*domain.Profile, error) {
+	return &domain.Profile{ID: "user-123"}, nil
+}
+
+func (*fakeService) DeleteProfile(context.Context, string) error { return nil }
+func (*fakeService) RegisterDevice(context.Context, string, domain.RegisterDeviceInput) error {
+	return nil
+}
+func (*fakeService) UnregisterDevice(context.Context, string, string) error { return nil }
+func (*fakeService) CreateApartment(context.Context, string, domain.CreateApartmentInput) (*domain.Apartment, error) {
+	return &domain.Apartment{ID: "apt-1"}, nil
+}
+func (*fakeService) CreateDemoApartment(context.Context, string) (*domain.Apartment, error) {
+	return &domain.Apartment{ID: "apt-demo"}, nil
+}
+func (*fakeService) JoinApartment(context.Context, string, domain.JoinApartmentInput) (*domain.Apartment, error) {
+	return &domain.Apartment{ID: "apt-1"}, nil
+}
+func (*fakeService) GetApartment(context.Context, string, string) (*domain.Apartment, error) {
+	return &domain.Apartment{ID: "apt-1"}, nil
+}
+func (*fakeService) GetApartmentMembers(context.Context, string, string) ([]domain.Member, error) {
+	return nil, nil
+}
+func (*fakeService) LeaveApartment(context.Context, string, string) error     { return nil }
+func (*fakeService) DeleteApartment(context.Context, string, string) error    { return nil }
+func (*fakeService) ClearDemoApartment(context.Context, string, string) error { return nil }
+func (*fakeService) ListChores(context.Context, string, string) ([]domain.Chore, error) {
+	return nil, nil
+}
+func (*fakeService) GetAssignmentsForWeek(context.Context, string, string, int) ([]domain.Assignment, error) {
+	return nil, nil
+}
+func (*fakeService) EnsureAssignmentsForWeek(context.Context, string, string, int) ([]domain.Assignment, error) {
+	return nil, nil
+}
+func (*fakeService) ClaimAssignment(context.Context, string, string, string) (*domain.Assignment, error) {
+	return &domain.Assignment{ID: "assignment-1"}, nil
+}
+func (*fakeService) UnclaimAssignment(context.Context, string, string, string) (*domain.Assignment, error) {
+	return &domain.Assignment{ID: "assignment-1"}, nil
+}
+func (*fakeService) SetAssignmentUser(context.Context, string, string, string, *string) (*domain.Assignment, error) {
+	return &domain.Assignment{ID: "assignment-1"}, nil
 }
