@@ -114,7 +114,7 @@ func (h v1Handler) handleProfile(w http.ResponseWriter, r *http.Request, uid str
 		}
 		w.WriteHeader(http.StatusNoContent)
 	default:
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodGet, http.MethodPatch, http.MethodDelete)
 	}
 }
 
@@ -123,7 +123,7 @@ func (h v1Handler) handleDeviceRegistration(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	var input domain.RegisterDeviceInput
@@ -143,7 +143,7 @@ func (h v1Handler) handleDeviceUnregistration(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if r.Method != http.MethodDelete {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodDelete)
 		return
 	}
 	if err := h.service.UnregisterDevice(r.Context(), uid, deviceID); err != nil {
@@ -158,7 +158,7 @@ func (h v1Handler) handleApartmentsCollection(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	var input domain.CreateApartmentInput
@@ -179,7 +179,7 @@ func (h v1Handler) handleApartmentJoin(w http.ResponseWriter, r *http.Request, u
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	var input domain.JoinApartmentInput
@@ -200,7 +200,7 @@ func (h v1Handler) handleApartmentDemoCreate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	apartment, err := h.service.CreateDemoApartment(r.Context(), uid)
@@ -230,7 +230,7 @@ func (h v1Handler) handleApartmentResource(w http.ResponseWriter, r *http.Reques
 		}
 		w.WriteHeader(http.StatusNoContent)
 	default:
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodGet, http.MethodDelete)
 	}
 }
 
@@ -239,7 +239,7 @@ func (h v1Handler) handleApartmentMembers(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if r.Method != http.MethodGet {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodGet)
 		return
 	}
 	members, err := h.service.GetApartmentMembers(r.Context(), uid, apartmentID)
@@ -255,7 +255,7 @@ func (h v1Handler) handleApartmentLeave(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	if err := h.service.LeaveApartment(r.Context(), uid, apartmentID); err != nil {
@@ -270,7 +270,7 @@ func (h v1Handler) handleApartmentDemoClear(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	if err := h.service.ClearDemoApartment(r.Context(), uid, apartmentID); err != nil {
@@ -285,7 +285,7 @@ func (h v1Handler) handleChoreList(w http.ResponseWriter, r *http.Request, uid s
 		return
 	}
 	if r.Method != http.MethodGet {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodGet)
 		return
 	}
 	chores, err := h.service.ListChores(r.Context(), uid, apartmentID)
@@ -301,7 +301,7 @@ func (h v1Handler) handleAssignmentsCollection(w http.ResponseWriter, r *http.Re
 		return
 	}
 	if r.Method != http.MethodGet {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodGet)
 		return
 	}
 	weekNumber, err := weekNumberFromRequest(r)
@@ -322,7 +322,7 @@ func (h v1Handler) handleAssignmentsEnsure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	weekNumber, err := weekNumberFromRequest(r)
@@ -343,7 +343,7 @@ func (h v1Handler) handleAssignmentClaim(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	assignment, err := h.service.ClaimAssignment(r.Context(), uid, apartmentID, assignmentID)
@@ -359,7 +359,7 @@ func (h v1Handler) handleAssignmentUnclaim(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if r.Method != http.MethodPost {
-		WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")
+		methodNotAllowed(w, r, http.MethodPost)
 		return
 	}
 	assignment, err := h.service.UnclaimAssignment(r.Context(), uid, apartmentID, assignmentID)
@@ -430,4 +430,9 @@ func weekNumberFromRequest(r *http.Request) (int, error) {
 		return 0, errors.New("weekNumber query parameter is required")
 	}
 	return strconv.Atoi(value)
+}
+
+func methodNotAllowed(w http.ResponseWriter, r *http.Request, allowed ...string) {
+	w.Header().Set("Allow", strings.Join(allowed, ", "))
+	WriteError(w, r, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
 }

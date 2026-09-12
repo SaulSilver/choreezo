@@ -629,7 +629,11 @@ func (s *Service) createApartment(ctx context.Context, uid string, input CreateA
 		apartmentRef := s.client.Collection(apartmentsCollection).NewDoc()
 		userRef := s.client.Collection(usersCollection).Doc(uid)
 		mappingRef := s.client.Collection(inviteMappingsCollection).Doc(inviteCode)
-		weekNumber := ISOWeekNumberAt(s.now(), time.UTC)
+		weekLocation := time.UTC
+		if loadedLocation, err := time.LoadLocation(timezone); err == nil {
+			weekLocation = loadedLocation
+		}
+		weekNumber := ISOWeekNumberAt(s.now(), weekLocation)
 		if err := s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 			user, userExists, err := readUserRecordTx(tx, userRef)
 			if err != nil {

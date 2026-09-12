@@ -87,7 +87,7 @@ The OpenAPI document lives at `openapi/openapi.yaml` and documents the currently
 `DELETE /v1/me` intentionally preserves current application behavior instead of inventing extra destructive cleanup:
 
 - If the user **owns** an apartment (`apartments/{id}.createdBy == uid`), the API rejects deletion with `409 apartment_owner_conflict`.
-- If the user **belongs** to an apartment but does **not** own it, the API deletes only the user's Firestore document plus backend-owned device-registration subcollection data. It does **not** mutate apartment membership lists, assignments, or other apartment data.
+- If the user **belongs** to an apartment but does **not** own it, the API deletes only the user's Firestore document plus backend-owned device-registration subcollection data. Because apartment membership is derived from `users.where(apartmentId == apartmentId)`, that user disappears from membership queries, but the apartment document, invite mapping, chores, and assignments remain untouched.
 - The API does **not** delete the Firebase Authentication identity. It only deletes Firestore data owned by this backend.
 
 ## Device registration

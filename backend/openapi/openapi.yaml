@@ -540,7 +540,7 @@ components:
               type: string
     Profile:
       type: object
-      required: [id, apartmentId, notifyDaily, notifyWeekly]
+      required: [id, name, apartmentId, isDemoUser, notifyDaily, notifyWeekly]
       properties:
         id:
           type: string
@@ -579,7 +579,7 @@ components:
       additionalProperties: false
     Apartment:
       type: object
-      required: [id, name, inviteCode, timezone, createdBy]
+      required: [id, name, isDemo, inviteCode, timezone, createdBy]
       properties:
         id:
           type: string
@@ -595,7 +595,7 @@ components:
           type: string
     Member:
       type: object
-      required: [id]
+      required: [id, name, isDemoUser]
       properties:
         id:
           type: string

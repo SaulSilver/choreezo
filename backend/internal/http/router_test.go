@@ -119,6 +119,71 @@ func TestProtectedEndpointPassesVerifiedUID(t *testing.T) {
 	}
 }
 
+func TestPatchProfileDecodesBody(t *testing.T) {
+	service := &fakeService{
+		updateProfile: func(_ context.Context, uid string, input domain.UpdateProfileInput) (*domain.Profile, error) {
+			return &domain.Profile{
+				ID:           uid,
+				Name:         derefString(input.Name),
+				NotifyDaily:  derefBool(input.NotifyDaily),
+				NotifyWeekly: false,
+			}, nil
+		},
+	}
+	handler := NewHandler(Dependencies{
+		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
+		FirebaseVerifier: staticFirebaseVerifier{},
+		DomainService:    service,
+	})
+	req := httptest.NewRequest(http.MethodPatch, "/v1/me", strings.NewReader(`{"name":"Updated","notifyDaily":true}`))
+	req.Header.Set("Authorization", strings.Join([]string{"Bearer", "token"}, " "))
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, res.Code)
+	}
+	if service.lastUID != "user-123" {
+		t.Fatalf("expected uid user-123, got %q", service.lastUID)
+	}
+	if service.lastName != "Updated" {
+		t.Fatalf("expected decoded name Updated, got %q", service.lastName)
+	}
+	if !service.lastNotifyDaily {
+		t.Fatal("expected decoded notifyDaily true")
+	}
+}
+
+func TestAssignmentsRejectInvalidWeekNumber(t *testing.T) {
+	handler := NewHandler(Dependencies{
+		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
+		FirebaseVerifier: staticFirebaseVerifier{},
+		DomainService:    &fakeService{},
+	})
+	req := httptest.NewRequest(http.MethodGet, "/v1/apartments/apt-1/assignments?weekNumber=bad", nil)
+	req.Header.Set("Authorization", strings.Join([]string{"Bearer", "token"}, " "))
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d", http.StatusBadRequest, res.Code)
+	}
+	var body struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Error.Code != "invalid_week_number" {
+		t.Fatalf("expected invalid_week_number, got %q", body.Error.Code)
+	}
+}
+
 func TestProtectedEndpointReturnsServiceUnavailableWhenDomainMissing(t *testing.T) {
 	handler := NewHandler(Dependencies{
 		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -194,6 +259,26 @@ func TestUnknownProtectedPathReturnsNotFound(t *testing.T) {
 	}
 }
 
+func TestKnownRouteWrongMethodReturnsMethodNotAllowed(t *testing.T) {
+	handler := NewHandler(Dependencies{
+		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
+		FirebaseVerifier: staticFirebaseVerifier{},
+		DomainService:    &fakeService{},
+	})
+	req := httptest.NewRequest(http.MethodPut, "/v1/me", nil)
+	req.Header.Set("Authorization", strings.Join([]string{"Bearer", "token"}, " "))
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected status %d, got %d", http.StatusMethodNotAllowed, res.Code)
+	}
+	if allow := res.Header().Get("Allow"); allow != "GET, PATCH, DELETE" {
+		t.Fatalf("expected Allow header, got %q", allow)
+	}
+}
+
 func TestRequestIDIncludedInLogs(t *testing.T) {
 	var logs bytes.Buffer
 	handler := NewHandler(Dependencies{Logger: slog.New(slog.NewJSONHandler(&logs, nil))})
@@ -223,8 +308,11 @@ func (staticInternalVerifier) VerifyRequest(_ context.Context, _ *http.Request) 
 }
 
 type fakeService struct {
-	lastUID    string
-	getProfile func(context.Context, string) (*domain.Profile, error)
+	lastUID         string
+	getProfile      func(context.Context, string) (*domain.Profile, error)
+	lastName        string
+	lastNotifyDaily bool
+	updateProfile   func(context.Context, string, domain.UpdateProfileInput) (*domain.Profile, error)
 }
 
 func (f *fakeService) GetProfile(ctx context.Context, uid string) (*domain.Profile, error) {
@@ -235,7 +323,17 @@ func (f *fakeService) GetProfile(ctx context.Context, uid string) (*domain.Profi
 	return &domain.Profile{ID: uid}, nil
 }
 
-func (*fakeService) UpdateProfile(context.Context, string, domain.UpdateProfileInput) (*domain.Profile, error) {
+func (f *fakeService) UpdateProfile(ctx context.Context, uid string, input domain.UpdateProfileInput) (*domain.Profile, error) {
+	f.lastUID = uid
+	if input.Name != nil {
+		f.lastName = *input.Name
+	}
+	if input.NotifyDaily != nil {
+		f.lastNotifyDaily = *input.NotifyDaily
+	}
+	if f.updateProfile != nil {
+		return f.updateProfile(ctx, uid, input)
+	}
 	return &domain.Profile{ID: "user-123"}, nil
 }
 
@@ -279,4 +377,15 @@ func (*fakeService) UnclaimAssignment(context.Context, string, string, string) (
 }
 func (*fakeService) SetAssignmentUser(context.Context, string, string, string, *string) (*domain.Assignment, error) {
 	return &domain.Assignment{ID: "assignment-1"}, nil
+}
+
+func derefString(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func derefBool(value *bool) bool {
+	return value != nil && *value
 }

@@ -7,11 +7,11 @@ import (
 
 type Profile struct {
 	ID           string  `json:"id"`
-	Name         string  `json:"name,omitempty"`
+	Name         string  `json:"name"`
 	Email        *string `json:"email,omitempty"`
 	AuthProvider *string `json:"authProvider,omitempty"`
 	ApartmentID  *string `json:"apartmentId"`
-	IsDemoUser   bool    `json:"isDemoUser,omitempty"`
+	IsDemoUser   bool    `json:"isDemoUser"`
 	NotifyDaily  bool    `json:"notifyDaily"`
 	NotifyWeekly bool    `json:"notifyWeekly"`
 }
@@ -19,7 +19,7 @@ type Profile struct {
 type Apartment struct {
 	ID         string `json:"id"`
 	Name       string `json:"name"`
-	IsDemo     bool   `json:"isDemo,omitempty"`
+	IsDemo     bool   `json:"isDemo"`
 	InviteCode string `json:"inviteCode"`
 	Timezone   string `json:"timezone"`
 	CreatedBy  string `json:"createdBy"`
@@ -27,8 +27,8 @@ type Apartment struct {
 
 type Member struct {
 	ID         string `json:"id"`
-	Name       string `json:"name,omitempty"`
-	IsDemoUser bool   `json:"isDemoUser,omitempty"`
+	Name       string `json:"name"`
+	IsDemoUser bool   `json:"isDemoUser"`
 }
 
 type Chore struct {
