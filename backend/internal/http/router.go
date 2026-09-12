@@ -31,7 +31,7 @@ func NewHandler(deps Dependencies) http.Handler {
 		}
 	})
 
-	return withRecovery(logger, withLogging(logger, withRequestID(app)))
+	return withRecovery(logger, withRequestID(withLogging(logger, app)))
 }
 
 func firebaseProtectedHandler() http.Handler {

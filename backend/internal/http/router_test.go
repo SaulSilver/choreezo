@@ -1,11 +1,13 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -85,5 +87,21 @@ func TestProtectedEndpointRequiresBearerToken(t *testing.T) {
 	}
 	if body.Error.Code != "unauthorized" {
 		t.Fatalf("expected error code unauthorized, got %q", body.Error.Code)
+	}
+}
+
+func TestRequestIDIncludedInLogs(t *testing.T) {
+	var logs bytes.Buffer
+	handler := NewHandler(Dependencies{Logger: slog.New(slog.NewJSONHandler(&logs, nil))})
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if !strings.Contains(logs.String(), "\"request_id\":\"") {
+		t.Fatalf("expected request_id field in logs, got %s", logs.String())
+	}
+	if strings.Contains(logs.String(), "\"request_id\":\"\"") {
+		t.Fatalf("expected non-empty request_id in logs, got %s", logs.String())
 	}
 }

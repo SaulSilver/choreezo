@@ -31,8 +31,10 @@ paths:
       security:
         - firebaseIdToken: []
       responses:
-        '501':
-          description: Not implemented in Phase A
+        '401':
+          description: Missing or invalid Firebase bearer token
+        '503':
+          description: Firebase authentication wiring is not implemented in Phase A
   /internal/jobs/weekly-seed:
     post:
       summary: Placeholder internal job endpoint for future weekly seeding
@@ -40,8 +42,10 @@ paths:
       security:
         - googleOidc: []
       responses:
-        '501':
-          description: Not implemented in Phase A
+        '401':
+          description: Missing or invalid internal authentication
+        '503':
+          description: Internal OIDC verification wiring is not implemented in Phase A
 components:
   securitySchemes:
     firebaseIdToken:
