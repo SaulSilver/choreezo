@@ -1,0 +1,82 @@
+name: Feature request
+description: Define a scoped feature ticket with enough detail for automation.
+title: "[Feature]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for feature work that may later be handed to Copilot.
+        A maintainer should add `copilot-ready` only after the request is clear and implementation-safe.
+  - type: input
+    id: objective
+    attributes:
+      label: Objective
+      description: State the desired outcome.
+      placeholder: Let users mute daily reminders without disabling weekly summaries.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What user or product problem does this feature address?
+      placeholder: Users want fewer notifications but still want a weekly summary of their chores.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Describe what should be built and what should remain unchanged.
+      placeholder: Add separate notification toggles in settings and persist them on the user profile. Do not redesign the settings screen.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List the completion conditions.
+      placeholder: |
+        - Users can toggle daily reminders independently from weekly summaries
+        - Preferences persist across app restarts
+        - Existing notification registration still works
+    validations:
+      required: true
+  - type: dropdown
+    id: affected-surface
+    attributes:
+      label: Affected surface
+      description: Pick the main area this feature touches.
+      options:
+        - Frontend app
+        - Firebase functions
+        - Shared app + functions contract
+        - Future Go backend (/backend or /api)
+        - Documentation / automation only
+    validations:
+      required: true
+  - type: dropdown
+    id: release-impact
+    attributes:
+      label: Release impact
+      description: Choose the highest expected delivery impact.
+      options:
+        - No immediate release impact
+        - User-facing app behavior change
+        - Functions / scheduling behavior change
+        - Requires staged rollout or manual approval
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies or blockers
+      description: Note any prerequisite decisions, tickets, or environment needs.
+      placeholder: Depends on final notification copy and product approval.
+  - type: textarea
+    id: release-notes
+    attributes:
+      label: Release notes draft
+      description: Optional reviewer-facing summary for eventual delivery.
+      placeholder: Users can now control daily and weekly chore reminders separately.

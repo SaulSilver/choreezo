@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Architecture or product question
+    url: https://github.com/SaulSilver/choreezo
+    about: Use the repository homepage for open-ended context before creating an implementation-ready issue.

@@ -1,0 +1,94 @@
+name: Bug report
+description: Report a defect with implementation-ready context for Copilot or a maintainer.
+title: "[Bug]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for implementation-ready bug tickets.
+        Copilot should only be triggered after a maintainer applies the `copilot-ready` label.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the bug in one or two sentences.
+      placeholder: Roommates cannot claim an unassigned chore from the weekly schedule.
+    validations:
+      required: true
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: What happens today?
+      placeholder: Tapping Claim closes the modal and leaves the assignment unchanged.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+      placeholder: The assignment should be saved and appear under My Chores immediately.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Bound the change so Copilot knows what is in and out.
+      placeholder: Fix the claim flow in the app UI and Firestore update path. Do not redesign the weekly schedule screen.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List the conditions that must be true when this is done.
+      placeholder: |
+        - Claiming an unassigned chore persists the userId
+        - The updated assignment appears without a restart
+        - Existing reassignment behavior still works
+    validations:
+      required: true
+  - type: dropdown
+    id: affected-surface
+    attributes:
+      label: Affected surface
+      description: Pick the main area this change touches.
+      options:
+        - Frontend app
+        - Firebase functions
+        - Shared app + functions contract
+        - Future Go backend (/backend or /api)
+        - Documentation / automation only
+    validations:
+      required: true
+  - type: dropdown
+    id: release-impact
+    attributes:
+      label: Release impact
+      description: Choose the highest expected delivery impact.
+      options:
+        - No user-facing release impact
+        - User-facing app behavior change
+        - Functions / scheduling behavior change
+        - Requires staged rollout or manual approval
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Reproduction details
+      description: Steps, screenshots, logs, or links that help reproduce the issue.
+      placeholder: |
+        1. Sign in as a non-admin roommate
+        2. Open Weekly Schedule
+        3. Tap an unassigned chore for today
+        4. Tap Claim
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Optional guardrails for what should not change.
+      placeholder: Do not modify push notification logic or assignment seeding.

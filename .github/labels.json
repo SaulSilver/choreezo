@@ -1,0 +1,37 @@
+[
+  {
+    "name": "copilot-ready",
+    "color": "0E8A16",
+    "description": "Issue is scoped well enough for Copilot to plan or implement."
+  },
+  {
+    "name": "needs-human-input",
+    "color": "D93F0B",
+    "description": "Copilot or automation is blocked on missing scope, acceptance criteria, or approval."
+  },
+  {
+    "name": "frontend",
+    "color": "1D76DB",
+    "description": "Primarily affects the Expo app."
+  },
+  {
+    "name": "functions",
+    "color": "5319E7",
+    "description": "Primarily affects Firebase Cloud Functions."
+  },
+  {
+    "name": "backend",
+    "color": "BFDADC",
+    "description": "Reserved for the future Go backend under /backend or /api."
+  },
+  {
+    "name": "release-impact",
+    "color": "FBCA04",
+    "description": "Change has delivery or rollout impact that should be reviewed explicitly."
+  },
+  {
+    "name": "safe-to-automerge",
+    "color": "C2E0C6",
+    "description": "Low-risk change that may be considered for future auto-merge rules."
+  }
+]
