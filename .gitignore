@@ -42,3 +42,4 @@ yarn-error.*
 /ios
 /android
 functions/package-lock.json
+backend/api
