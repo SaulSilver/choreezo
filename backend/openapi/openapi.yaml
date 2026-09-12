@@ -1,0 +1,55 @@
+openapi: 3.1.0
+info:
+  title: Choreezo Backend API
+  version: 0.1.0
+  description: >-
+    Phase A foundation for the future Go backend that will become the trusted
+    boundary between the Expo client and Firestore.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      operationId: getHealthz
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /v1/profile:
+    get:
+      summary: Placeholder protected endpoint for future profile retrieval
+      operationId: getProfile
+      security:
+        - firebaseIdToken: []
+      responses:
+        '501':
+          description: Not implemented in Phase A
+  /internal/jobs/weekly-seed:
+    post:
+      summary: Placeholder internal job endpoint for future weekly seeding
+      operationId: runWeeklySeed
+      security:
+        - googleOidc: []
+      responses:
+        '501':
+          description: Not implemented in Phase A
+components:
+  securitySchemes:
+    firebaseIdToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase ID token verified by Firebase Admin.
+    googleOidc:
+      type: openIdConnect
+      openIdConnectUrl: https://accounts.google.com/.well-known/openid-configuration
+      description: Planned Cloud Scheduler OIDC authentication.
