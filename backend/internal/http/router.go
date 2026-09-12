@@ -3,7 +3,6 @@ package httpapi
 import (
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/SaulSilver/choreezo/backend/internal/auth"
 )
@@ -26,9 +25,9 @@ func NewHandler(deps Dependencies) http.Handler {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/healthz":
 			writeHealth(w)
-		case strings.HasPrefix(r.URL.Path, "/v1/"):
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/profile":
 			firebaseHandler.ServeHTTP(w, r)
-		case strings.HasPrefix(r.URL.Path, "/internal/"):
+		case r.Method == http.MethodPost && r.URL.Path == "/internal/jobs/weekly-seed":
 			internalHandler.ServeHTTP(w, r)
 		default:
 			WriteError(w, r, http.StatusNotFound, "not_found", "resource not found")

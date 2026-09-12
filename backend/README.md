@@ -69,14 +69,13 @@ In another terminal:
 
 ```bash
 cd backend
-FIREBASE_PROJECT_ID=demo-choreezo FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 go run ./cmd/api
+PORT=18080 FIREBASE_PROJECT_ID=demo-choreezo FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 go run ./cmd/api
 ```
 
-Use a non-conflicting port if your emulator is already on `8080`, for example:
+Then check the API separately from the emulator:
 
 ```bash
-cd backend
-PORT=8081 FIREBASE_PROJECT_ID=demo-choreezo FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 go run ./cmd/api
+curl http://localhost:18080/healthz
 ```
 
 ## OpenAPI

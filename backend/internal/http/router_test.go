@@ -156,6 +156,23 @@ func TestInternalEndpointReturnsPhaseAPlaceholderAfterAuth(t *testing.T) {
 	}
 }
 
+func TestUnknownProtectedPathReturnsNotFound(t *testing.T) {
+	handler := NewHandler(Dependencies{
+		Logger:           slog.New(slog.NewTextHandler(io.Discard, nil)),
+		FirebaseVerifier: staticFirebaseVerifier{},
+		InternalVerifier: staticInternalVerifier{},
+	})
+	req := httptest.NewRequest(http.MethodGet, "/v1/unknown", nil)
+	req.Header.Set("Authorization", strings.Join([]string{"Bearer", "token"}, " "))
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d", http.StatusNotFound, res.Code)
+	}
+}
+
 func TestRequestIDIncludedInLogs(t *testing.T) {
 	var logs bytes.Buffer
 	handler := NewHandler(Dependencies{Logger: slog.New(slog.NewJSONHandler(&logs, nil))})
