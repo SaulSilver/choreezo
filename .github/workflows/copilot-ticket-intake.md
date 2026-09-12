@@ -7,8 +7,8 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
+  issues: read
+  pull-requests: read
   copilot-requests: write
 
 network: defaults
@@ -17,18 +17,17 @@ engine: copilot
 
 tools:
   github:
-    toolsets: [issues, pull-requests, contents]
+    toolsets: [default]
 
 safe-outputs:
+  staged: true
   add-comment:
   add-labels:
   create-pull-request:
-    draft: true
     labels: [copilot-ready]
     title-prefix: "[copilot] "
     allowed-base-branches:
       - main
-      - master
 
 ---
 
